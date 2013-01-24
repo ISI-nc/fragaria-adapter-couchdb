@@ -3,126 +3,16 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>nc.isi</groupId>
-	<artifactId>fragaria-adapter-rewrite</artifactId>
+	<artifactId>fragaria-adapter-couchdb</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
-	<name>fragaria-adapter-rewrite Tapestry 5 Application</name>
+	<name>fragaria-adapter-couchdb</name>
 	<dependencies>
-		<!-- Too set up an application with a database, change the artifactId below 
-			to tapestry-hibernate, and add a dependency on your JDBC driver. You'll also 
-			need to add Hibernate configuration files, such as hibernate.cfg.xml. -->
 		<dependency>
-			<groupId>org.apache.tapestry</groupId>
-			<artifactId>tapestry-ioc</artifactId>
-			<version>${tapestry-release-version}</version>
+			<groupId>nc.isi</groupId>
+			<artifactId>fragaria-adapter-rewrite</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
-		<dependency>
-			<groupId>com.mysema.querydsl</groupId>
-			<artifactId>querydsl-collections</artifactId>
-			<version>${querydsl.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.mysema.querydsl</groupId>
-			<artifactId>querydsl-apt</artifactId>
-			<version>${querydsl.version}</version>
-			<scope>provided</scope>
-		</dependency>
-
-		<!-- Uncomment this to add support for file uploads: <dependency> <groupId>org.apache.tapestry</groupId> 
-			<artifactId>tapestry-upload</artifactId> <version>${tapestry-release-version}</version> 
-			</dependency> -->
-
-		<!-- A dependency on either JUnit or TestNG is required, or the surefire 
-			plugin (which runs the tests) will fail, preventing Maven from packaging 
-			the WAR. Tapestry includes a large number of testing facilities designed 
-			for use with TestNG (http://testng.org/), so it's recommended. -->
-
-		<dependency>
-			<groupId>org.easymock</groupId>
-			<artifactId>easymock</artifactId>
-			<version>${easymock-release-version}</version>
-			<scope>test</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.apache.tapestry</groupId>
-			<artifactId>tapestry-test</artifactId>
-			<version>${tapestry-release-version}</version>
-			<scope>test</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>com.google.guava</groupId>
-			<artifactId>guava</artifactId>
-			<version>14.0-rc1</version>
-		</dependency>
-		<dependency>
-			<groupId>org.reflections</groupId>
-			<artifactId>reflections</artifactId>
-			<version>0.9.8</version>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-beans</artifactId>
-			<version>3.2.0.RELEASE</version>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-core</artifactId>
-			<version>${jackson-version}</version>
-		</dependency>
-		<dependency>
-			<groupId>joda-time</groupId>
-			<artifactId>joda-time</artifactId>
-			<version>1.6.1</version>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.datatype</groupId>
-			<artifactId>jackson-datatype-joda</artifactId>
-			<version>${jackson-version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.ektorp</groupId>
-			<artifactId>org.ektorp</artifactId>
-			<version>1.4.0-SNAPSHOT</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.cayenne.plugins</groupId>
-			<artifactId>maven-cayenne-modeler-plugin</artifactId>
-			<version>3.1M3</version>
-		</dependency>
-		<dependency>
-			<groupId>postgresql</groupId>
-			<artifactId>postgresql</artifactId>
-			<version>9.1-901.jdbc4</version>
-		</dependency>
-            
-		<dependency>
-			<groupId>org.elasticsearch</groupId>
-			<artifactId>elasticsearch</artifactId>
-			<version>0.20.2</version>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>jul-to-slf4j</artifactId>
-			<version>${slf4j.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-log4j12</artifactId>
-			<version>${slf4j.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
-			<version>${slf4j.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.yaml</groupId>
-			<artifactId>snakeyaml</artifactId>
-			<version>1.11</version>
-		</dependency>
-
 	</dependencies>
 	<build>
 		<finalName>fragaria-adapter-rewrite</finalName>
@@ -194,22 +84,4 @@
 			</plugin>
 		</plugins>
 	</reporting>
-
-	<repositories>
-
-		<!-- This repository is only needed when the Tapestry version is a preview 
-			release, rather than a final release. -->
-		<repository>
-			<id>apache-staging</id>
-			<url>https://repository.apache.org/content/groups/staging/</url>
-		</repository>
-	</repositories>
-
-	<properties>
-		<tapestry-release-version>5.4-alpha-2</tapestry-release-version>
-		<easymock-release-version>3.0</easymock-release-version>
-		<querydsl.version>2.7.0</querydsl.version>
-		<jackson-version>2.1.2</jackson-version>
-		<slf4j.version>1.6.4</slf4j.version>
-	</properties>
 </project>

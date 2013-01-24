@@ -2,7 +2,7 @@
 <suite name="fragaria-adapter-rewrite Application Test Suite" annotations="1.5">
     <test name="Unit Tests">
         <packages>
-            <package name="nc.isi.fragaria_adapter_rewrite"/>
+            <package name="nc.isi.fragaria_adapter_couchdb"/>
         </packages>
     </test>
 </suite>

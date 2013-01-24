@@ -1,5 +1,0 @@
-type           : CouchDB
-canEmbed       : true
-connectionData :
-  url    : http://localhost:5984/
-  dbName : rer

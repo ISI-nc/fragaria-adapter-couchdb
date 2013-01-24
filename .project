@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>fragaria-adapter-rewrite</name>
+	<name>fragaria-adapter-couchdb</name>
 	<comment></comment>
 	<projects>
 	</projects>
