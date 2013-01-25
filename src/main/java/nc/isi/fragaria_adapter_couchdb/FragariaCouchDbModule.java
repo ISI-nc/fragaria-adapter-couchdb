@@ -6,13 +6,19 @@ import nc.isi.fragaria_adapter_rewrite.services.FragariaDomainModule;
 import org.apache.tapestry5.ioc.MappedConfiguration;
 import org.apache.tapestry5.ioc.ServiceBinder;
 import org.apache.tapestry5.ioc.annotations.SubModule;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
 @SubModule(FragariaDomainModule.class)
 public class FragariaCouchDbModule {
+	static {
+		SLF4JBridgeHandler.install();
+	}
 
 	public static void bind(ServiceBinder binder) {
 		binder.bind(CouchDbSerializer.class);
 		binder.bind(CouchDbAdapter.class);
+		binder.bind(CouchDbObjectMapperProvider.class,
+				CouchDbObjectMapperProviderImpl.class);
 	}
 
 	public void contributeConnectionDataBuilder(

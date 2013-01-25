@@ -29,7 +29,6 @@ import nc.isi.fragaria_adapter_rewrite.entities.EntityMetadataFactory;
 import nc.isi.fragaria_adapter_rewrite.enums.State;
 import nc.isi.fragaria_adapter_rewrite.resources.DataSourceProvider;
 import nc.isi.fragaria_adapter_rewrite.resources.Datasource;
-import nc.isi.fragaria_adapter_rewrite.services.ObjectMapperProvider;
 
 import org.ektorp.BulkDeleteDocument;
 import org.ektorp.CouchDbConnector;
@@ -59,7 +58,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 	private final EntityMetadataFactory entityMetadataFactory;
 	private final CouchDbSerializer serializer;
 	private final ElasticSearchAdapter elasticSearchAdapter;
-	private final ObjectMapperProvider objectMapperProvider;
+	private final CouchDbObjectMapperProvider objectMapperProvider;
 	private final LoadingCache<URL, CouchDbInstance> instanceCache = CacheBuilder
 			.newBuilder()
 			.expireAfterAccess(MAX_INSTANCE_TIME, TimeUnit.MINUTES)
@@ -94,7 +93,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 			CouchDbSerializer serializer,
 			EntityMetadataFactory entityMetadataFactory,
 			ElasticSearchAdapter elasticSearchAdapter,
-			ObjectMapperProvider objectMapperProvider) {
+			CouchDbObjectMapperProvider objectMapperProvider) {
 		this.serializer = serializer;
 		this.entityMetadataFactory = entityMetadataFactory;
 		this.elasticSearchAdapter = elasticSearchAdapter;
