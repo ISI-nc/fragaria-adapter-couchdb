@@ -7,6 +7,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public interface CouchDbObjectMapperProvider extends ObjectMapperFactory {
 
-	public ObjectMapper createObjectMapper(CouchDbConnector connector);
+	ObjectMapper createObjectMapper(CouchDbConnector connector);
 
 }

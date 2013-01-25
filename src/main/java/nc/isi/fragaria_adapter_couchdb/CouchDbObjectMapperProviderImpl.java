@@ -20,8 +20,7 @@ public class CouchDbObjectMapperProviderImpl extends ObjectMapperProviderImpl
 					new CacheLoader<CouchDbConnector, ObjectMapper>() {
 
 						@Override
-						public ObjectMapper load(CouchDbConnector key)
-								throws Exception {
+						public ObjectMapper load(CouchDbConnector key) {
 							ObjectMapper specificOM = new ObjectMapper();
 							init(specificOM);
 							specificOM.registerModule(new EktorpJacksonModule(
