@@ -12,7 +12,7 @@ import nc.isi.fragaria_adapter_rewrite.entities.ObjectResolver;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-@DsKey("rer")
+@DsKey("rer-test")
 public class PersonData extends AbstractEntity {
 
 	public static final String NAME = "name";

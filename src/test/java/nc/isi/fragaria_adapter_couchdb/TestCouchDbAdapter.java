@@ -7,17 +7,17 @@ import junit.framework.TestCase;
 import nc.isi.fragaria_adapter_couchdb.model.Adress;
 import nc.isi.fragaria_adapter_couchdb.model.City;
 import nc.isi.fragaria_adapter_couchdb.model.PersonData;
+import nc.isi.fragaria_adapter_couchdb.model.QaRegistry;
 import nc.isi.fragaria_adapter_rewrite.dao.ByViewQuery;
 import nc.isi.fragaria_adapter_rewrite.dao.IdQuery;
 import nc.isi.fragaria_adapter_rewrite.dao.Session;
 import nc.isi.fragaria_adapter_rewrite.dao.SessionManager;
 import nc.isi.fragaria_adapter_rewrite.entities.views.GenericViews.All;
-import nc.isi.fragaria_adapter_rewrite.services.TapestryRegistry;
 
 public class TestCouchDbAdapter extends TestCase {
 
 	public void testCreate() {
-		SessionManager sessionManager = TapestryRegistry.INSTANCE.getRegistry()
+		SessionManager sessionManager = QaRegistry.INSTANCE.getRegistry()
 				.getService(SessionManager.class);
 		Session session = sessionManager.create();
 		PersonData personData = session.create(PersonData.class);
