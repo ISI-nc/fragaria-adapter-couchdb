@@ -4,17 +4,24 @@ import java.util.Collection;
 
 import nc.isi.fragaria_adapter_rewrite.entities.Entity;
 import nc.isi.fragaria_adapter_rewrite.entities.EntityBuilder;
-import nc.isi.fragaria_adapter_rewrite.services.Serializer;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
 
-public class CouchDbSerializer implements Serializer<ObjectNode> {
+public class CouchDbSerializerImpl implements CouchdbSerializer {
 	private final EntityBuilder entityBuilder;
 
-	public CouchDbSerializer(EntityBuilder entityBuilder) {
+	public CouchDbSerializerImpl(EntityBuilder entityBuilder) {
 		this.entityBuilder = entityBuilder;
 	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * nc.isi.fragaria_adapter_couchdb.CouchdbSerializer#serialize(java.util
+	 * .Collection)
+	 */
 
 	@Override
 	public Collection<ObjectNode> serialize(Collection<Entity> objects) {
@@ -28,6 +35,13 @@ public class CouchDbSerializer implements Serializer<ObjectNode> {
 		return collection;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see nc.isi.fragaria_adapter_couchdb.CouchdbSerializer#serialize(nc.isi.
+	 * fragaria_adapter_rewrite.entities.Entity)
+	 */
+
 	@Override
 	public ObjectNode serialize(Entity object) {
 		if (object == null) {
@@ -35,6 +49,14 @@ public class CouchDbSerializer implements Serializer<ObjectNode> {
 		}
 		return object.toJSON();
 	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * nc.isi.fragaria_adapter_couchdb.CouchdbSerializer#deSerialize(java.util
+	 * .Collection, java.lang.Class)
+	 */
 
 	@Override
 	public <E extends Entity> Collection<E> deSerialize(
@@ -48,6 +70,14 @@ public class CouchDbSerializer implements Serializer<ObjectNode> {
 		}
 		return collection;
 	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * nc.isi.fragaria_adapter_couchdb.CouchdbSerializer#deSerialize(com.fasterxml
+	 * .jackson.databind.node.ObjectNode, java.lang.Class)
+	 */
 
 	@Override
 	public <E extends Entity> E deSerialize(ObjectNode objectNode,

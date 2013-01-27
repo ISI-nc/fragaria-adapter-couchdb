@@ -56,7 +56,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 	private static final long MAX_CONNECTOR = 30L;
 	private final DataSourceProvider dataSourceProvider;
 	private final EntityMetadataFactory entityMetadataFactory;
-	private final CouchDbSerializer serializer;
+	private final CouchdbSerializer serializer;
 	private final ElasticSearchAdapter elasticSearchAdapter;
 	private final CouchDbObjectMapperProvider objectMapperProvider;
 	private final LoadingCache<URL, CouchDbInstance> instanceCache = CacheBuilder
@@ -90,7 +90,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 			});
 
 	public CouchDbAdapter(DataSourceProvider dataSourceProvider,
-			CouchDbSerializer serializer,
+			CouchdbSerializer serializer,
 			EntityMetadataFactory entityMetadataFactory,
 			ElasticSearchAdapter elasticSearchAdapter,
 			CouchDbObjectMapperProvider objectMapperProvider) {

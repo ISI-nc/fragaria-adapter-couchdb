@@ -15,7 +15,7 @@ public class FragariaCouchDbModule {
 	}
 
 	public static void bind(ServiceBinder binder) {
-		binder.bind(CouchDbSerializer.class);
+		binder.bind(CouchdbSerializer.class, CouchDbSerializerImpl.class);
 		binder.bind(CouchDbAdapter.class);
 		binder.bind(CouchDbObjectMapperProvider.class,
 				CouchDbObjectMapperProviderImpl.class);
