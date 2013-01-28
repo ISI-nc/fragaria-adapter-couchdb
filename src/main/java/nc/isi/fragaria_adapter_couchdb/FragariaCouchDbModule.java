@@ -43,7 +43,7 @@ public class FragariaCouchDbModule {
 	public void contributeViewConfigBuilderProvider(
 			MappedConfiguration<String, ViewConfigBuilder> configuration,
 			CouchDbViewConfigBuilder couchDbViewConfigBuilder) {
-		configuration.add(".js", couchDbViewConfigBuilder);
+		configuration.add("CouchDB", couchDbViewConfigBuilder);
 	}
 
 }

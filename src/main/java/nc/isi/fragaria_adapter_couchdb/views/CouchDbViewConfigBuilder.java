@@ -21,24 +21,35 @@ import org.mozilla.javascript.ast.FunctionNode;
 
 public class CouchDbViewConfigBuilder implements ViewConfigBuilder {
 	private static final String ALL_MAP = "function(doc) {\n if (doc.types.indexOf('%s') >= 0)\n emit(null, doc);\n }\n";
+	public static final String JS = ".*\\.js";
 
 	@Override
 	public ViewConfig build(String name, File file) {
 		CouchDbViewConfig config = new CouchDbViewConfig(name);
 		try {
-			AstRoot script = parseJavascript(file);
-			AstNode node = (AstNode) script.getFirstChild();
-			while (node != null) {
-				if (node.getType() == Token.FUNCTION) {
-					FunctionNode functionNode = (FunctionNode) node;
-					config.setBody(functionNode.getFunctionName().toSource(),
-							functionNode.getBody().toSource());
-				}
-				node = (AstNode) node.getNext();
+			if (file.getName().matches(JS)) {
+				jsParser(file, config);
+			} else {
+				throw new IllegalArgumentException(String.format(
+						"Unknown file type : %s", file.getName()));
 			}
 			return config;
 		} catch (IOException e) {
 			throw new RuntimeException(e);
+		}
+	}
+
+	private void jsParser(File file, CouchDbViewConfig config)
+			throws IOException {
+		AstRoot script = parseJavascript(file);
+		AstNode node = (AstNode) script.getFirstChild();
+		while (node != null) {
+			if (node.getType() == Token.FUNCTION) {
+				FunctionNode functionNode = (FunctionNode) node;
+				config.setBody(functionNode.getFunctionName().toSource(),
+						functionNode.getBody().toSource());
+			}
+			node = (AstNode) node.getNext();
 		}
 	}
 
