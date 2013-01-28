@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import nc.isi.fragaria_adapter_couchdb.views.CouchDbViewConfig;
 import nc.isi.fragaria_adapter_rewrite.dao.ByViewQuery;
 import nc.isi.fragaria_adapter_rewrite.dao.CollectionQueryResponse;
 import nc.isi.fragaria_adapter_rewrite.dao.IdQuery;
@@ -26,6 +27,7 @@ import nc.isi.fragaria_adapter_rewrite.dao.adapters.ElasticSearchAdapter;
 import nc.isi.fragaria_adapter_rewrite.entities.Entity;
 import nc.isi.fragaria_adapter_rewrite.entities.EntityMetadata;
 import nc.isi.fragaria_adapter_rewrite.entities.EntityMetadataFactory;
+import nc.isi.fragaria_adapter_rewrite.entities.views.ViewConfig;
 import nc.isi.fragaria_adapter_rewrite.enums.State;
 import nc.isi.fragaria_adapter_rewrite.resources.DataSourceProvider;
 import nc.isi.fragaria_adapter_rewrite.resources.Datasource;
@@ -33,6 +35,7 @@ import nc.isi.fragaria_adapter_rewrite.resources.Datasource;
 import org.ektorp.BulkDeleteDocument;
 import org.ektorp.CouchDbConnector;
 import org.ektorp.CouchDbInstance;
+import org.ektorp.DbPath;
 import org.ektorp.ViewQuery;
 import org.ektorp.ViewResult;
 import org.ektorp.ViewResult.Row;
@@ -40,6 +43,8 @@ import org.ektorp.http.HttpClient;
 import org.ektorp.http.StdHttpClient;
 import org.ektorp.impl.StdCouchDbConnector;
 import org.ektorp.impl.StdCouchDbInstance;
+import org.ektorp.support.DesignDocument;
+import org.ektorp.support.DesignDocument.View;
 
 import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -52,6 +57,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 public class CouchDbAdapter extends AbstractAdapter implements Adapter {
+	private static final String DESIGN_DOC_PREFIXE = "_design/";
 	private static final long MAX_INSTANCE_TIME = 60L;
 	private static final long MAX_CONNECTOR = 30L;
 	private final DataSourceProvider dataSourceProvider;
@@ -79,12 +85,15 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 				@Override
 				public CouchDbConnector load(Datasource key)
 						throws ExecutionException {
-					CouchdbConnectionData couchdbConnectionData = CouchdbConnectionData.class
-							.cast(key.getDsMetadata().getConnectionData());
+					CouchdbConnectionData couchdbConnectionData = getConnectionData(key);
+					CouchDbInstance instance = instanceCache
+							.get(couchdbConnectionData.getUrl());
+					DbPath path = DbPath.fromString(couchdbConnectionData
+							.getDbName());
+					if (!instance.checkIfDbExists(path))
+						instance.createDatabase(path);
 					return new StdCouchDbConnector(couchdbConnectionData
-							.getDbName(), instanceCache
-							.get(couchdbConnectionData.getUrl()),
-							objectMapperProvider);
+							.getDbName(), instance, objectMapperProvider);
 				}
 
 			});
@@ -135,9 +144,13 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 				.keys(bVQuery.getFilter().values());
 	}
 
-	protected <T extends Entity> String buildDesignDocId(ByViewQuery<T> bVQuery) {
+	protected String buildDesignDocId(ByViewQuery<?> bVQuery) {
 		checkNotNull(bVQuery);
-		return "_design/" + bVQuery.getResultType().getSimpleName();
+		return buildDesignDocId(bVQuery.getResultType());
+	}
+
+	protected String buildDesignDocId(Class<? extends Entity> entityClass) {
+		return DESIGN_DOC_PREFIXE + entityClass.getSimpleName();
 	}
 
 	public <T extends Entity> CollectionQueryResponse<T> executeQuery(
@@ -290,6 +303,66 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 					.getRev().toString());
 		}
 		return entity;
+	}
+
+	@Override
+	public Boolean exist(ViewConfig viewConfig, EntityMetadata entityMetadata) {
+		DesignDocument dd = getDesignDocument(entityMetadata);
+		return dd.containsView(viewConfig.getName());
+	}
+
+	@Override
+	public void buildView(ViewConfig viewConfig, EntityMetadata entityMetadata) {
+		if (!(viewConfig instanceof CouchDbViewConfig))
+			throw new IllegalArgumentException(String.format(
+					"Seules les %s sont géré par %s", CouchDbViewConfig.class,
+					CouchDbAdapter.class));
+		DesignDocument dd = getDesignDocument(entityMetadata);
+		if (dd == null) {
+			dd = new DesignDocument(
+					buildDesignDocId(entityMetadata.getEntityClass()));
+		}
+		addView(viewConfig, dd);
+		getConnector(entityMetadata).update(dd);
+	}
+
+	public void createDb(String dbName) {
+		try {
+			instanceCache.get(getConnectionData(dbName).getUrl())
+					.createDatabase(dbName);
+		} catch (ExecutionException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public void deleteDb(String dbName) {
+		try {
+			instanceCache.get(getConnectionData(dbName).getUrl())
+					.deleteDatabase(dbName);
+		} catch (ExecutionException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected CouchdbConnectionData getConnectionData(Datasource datasource) {
+		return (CouchdbConnectionData) datasource.getDsMetadata()
+				.getConnectionData();
+
+	}
+
+	protected CouchdbConnectionData getConnectionData(String dbName) {
+		return getConnectionData(dataSourceProvider.provide(dbName));
+	}
+
+	protected void addView(ViewConfig viewConfig, DesignDocument dd) {
+		CouchDbViewConfig config = CouchDbViewConfig.class.cast(viewConfig);
+		dd.addView(viewConfig.getName(),
+				new View(config.getMap(), config.getReduce()));
+	}
+
+	protected DesignDocument getDesignDocument(EntityMetadata entityMetadata) {
+		return getConnector(entityMetadata).get(DesignDocument.class,
+				buildDesignDocId(entityMetadata.getEntityClass()));
 	}
 
 }

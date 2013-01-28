@@ -3,6 +3,7 @@ package nc.isi.fragaria_adapter_couchdb.model;
 import java.util.Arrays;
 import java.util.Collection;
 
+import nc.isi.fragaria_adapter_couchdb.TestCouchDbAdapter;
 import nc.isi.fragaria_adapter_couchdb.model.CityViews.Name;
 import nc.isi.fragaria_adapter_rewrite.annotations.DsKey;
 import nc.isi.fragaria_adapter_rewrite.annotations.Embeded;
@@ -12,7 +13,7 @@ import nc.isi.fragaria_adapter_rewrite.entities.ObjectResolver;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-@DsKey("rer-test")
+@DsKey(TestCouchDbAdapter.DB_NAME)
 public class PersonData extends AbstractEntity {
 
 	public static final String NAME = "name";
@@ -61,6 +62,14 @@ public class PersonData extends AbstractEntity {
 
 	public void setCities(Collection<City> cities) {
 		writeProperty(CITIES, cities);
+	}
+
+	public Boolean addCity(City city) {
+		return addToCollection(CITIES, city, City.class);
+	}
+
+	public Boolean removeCity(City city) {
+		return removeFromCollection(CITIES, city, City.class);
 	}
 
 	@Embeded(Name.class)

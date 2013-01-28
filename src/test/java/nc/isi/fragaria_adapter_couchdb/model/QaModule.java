@@ -13,4 +13,8 @@ public class QaModule {
 		configuration.add("nc.isi.fragaria_adapter_couchdb");
 	}
 
+	public void contributeViewInitializer(Configuration<String> configuration) {
+		configuration.add("nc.isi.fragaria_adapter_couchdb");
+	}
+
 }
