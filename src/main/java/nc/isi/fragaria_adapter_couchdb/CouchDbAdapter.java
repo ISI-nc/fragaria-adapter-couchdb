@@ -36,7 +36,6 @@ import org.ektorp.BulkDeleteDocument;
 import org.ektorp.CouchDbConnector;
 import org.ektorp.CouchDbInstance;
 import org.ektorp.DbPath;
-import org.ektorp.DocumentNotFoundException;
 import org.ektorp.ViewQuery;
 import org.ektorp.ViewResult;
 import org.ektorp.ViewResult.Row;
@@ -308,42 +307,60 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 
 	@Override
 	public Boolean exist(ViewConfig viewConfig, EntityMetadata entityMetadata) {
-		DesignDocument dd = getDesignDocument(entityMetadata);
-		if (dd == null)
+		CouchDbConnector connector = checkNotNull(getConnector(entityMetadata));
+		String designDocId = buildDesignDocId(entityMetadata.getEntityClass());
+		if (!connector.contains(designDocId))
 			return false;
-		return dd.containsView(viewConfig.getName());
+		DesignDocument designDoc = connector.get(DesignDocument.class,
+				designDocId);
+		if (designDoc == null)
+			return false;
+		return designDoc.containsView(viewConfig.getName());
 	}
 
 	@Override
 	public void buildView(ViewConfig viewConfig, EntityMetadata entityMetadata) {
+		checkNotNull(entityMetadata);
+		checkNotNull(viewConfig);
 		if (!(viewConfig instanceof CouchDbViewConfig))
 			throw new IllegalArgumentException(String.format(
 					"Seules les %s sont géré par %s", CouchDbViewConfig.class,
 					CouchDbAdapter.class));
-		DesignDocument dd = getDesignDocument(entityMetadata);
-		if (dd == null) {
-			dd = new DesignDocument(
-					buildDesignDocId(entityMetadata.getEntityClass()));
-		}
+		CouchDbConnector connector = checkNotNull(getConnector(entityMetadata));
+		String designDocId = buildDesignDocId(entityMetadata.getEntityClass());
+		DesignDocument dd = connector.contains(designDocId) ? connector.get(
+				DesignDocument.class, designDocId) : new DesignDocument(
+				designDocId);
 		addView(viewConfig, dd);
-		getConnector(entityMetadata).update(dd);
+		connector.update(dd);
 	}
 
-	public void createDb(String dbName) {
+	public void createDb(Datasource datasource) {
+		checkNotNull(datasource);
 		try {
-			instanceCache.get(getConnectionData(dbName).getUrl())
-					.createDatabase(dbName);
+			CouchdbConnectionData connectionData = checkNotNull(getConnectionData(datasource));
+			instanceCache.get(connectionData.getUrl()).createDatabase(
+					connectionData.getDbName());
+			if (!dataSourceProvider.datasources().contains(datasource))
+				dataSourceProvider.register(datasource);
 		} catch (ExecutionException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	public void deleteDb(String dbName) {
+	public void deleteDb(Datasource datasource) {
+		checkNotNull(datasource);
 		try {
-			CouchDbInstance instance = instanceCache.get(getConnectionData(
-					dbName).getUrl());
-			if (instance.checkIfDbExists(DbPath.fromString(dbName)))
-				instance.deleteDatabase(dbName);
+			CouchdbConnectionData connectionData = checkNotNull(getConnectionData(datasource));
+			CouchDbInstance instance = instanceCache.get(connectionData
+					.getUrl());
+			if (instance.checkIfDbExists(DbPath.fromString(connectionData
+					.getDbName()))) {
+				instance.deleteDatabase(connectionData.getDbName());
+				connectors.invalidate(datasource);
+				if (dataSourceProvider.datasources().contains(datasource))
+					dataSourceProvider.unregister(datasource);
+			}
 		} catch (ExecutionException e) {
 			throw new RuntimeException(e);
 		}
@@ -355,23 +372,12 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 
 	}
 
-	protected CouchdbConnectionData getConnectionData(String dbName) {
-		return getConnectionData(dataSourceProvider.provide(dbName));
-	}
-
 	protected void addView(ViewConfig viewConfig, DesignDocument dd) {
+		checkNotNull(viewConfig);
+		checkNotNull(dd);
 		CouchDbViewConfig config = CouchDbViewConfig.class.cast(viewConfig);
 		dd.addView(viewConfig.getName(),
 				new View(config.getMap(), config.getReduce()));
-	}
-
-	protected DesignDocument getDesignDocument(EntityMetadata entityMetadata) {
-		try {
-			return getConnector(entityMetadata).get(DesignDocument.class,
-					buildDesignDocId(entityMetadata.getEntityClass()));
-		} catch (DocumentNotFoundException e) {
-			return null;
-		}
 	}
 
 }

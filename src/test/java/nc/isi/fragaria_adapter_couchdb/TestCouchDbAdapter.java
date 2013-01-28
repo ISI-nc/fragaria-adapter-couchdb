@@ -1,12 +1,13 @@
 package nc.isi.fragaria_adapter_couchdb;
 
+import static org.junit.Assert.assertTrue;
+
 import java.util.Collection;
 
-import junit.framework.TestCase;
 import nc.isi.fragaria_adapter_couchdb.model.Adress;
 import nc.isi.fragaria_adapter_couchdb.model.City;
 import nc.isi.fragaria_adapter_couchdb.model.PersonData;
-import nc.isi.fragaria_adapter_couchdb.model.QaRegistry;
+import nc.isi.fragaria_adapter_couchdb.model.CouchDbQaRegistry;
 import nc.isi.fragaria_adapter_couchdb.views.CouchDbViewConfig;
 import nc.isi.fragaria_adapter_rewrite.dao.ByViewQuery;
 import nc.isi.fragaria_adapter_rewrite.dao.IdQuery;
@@ -14,11 +15,16 @@ import nc.isi.fragaria_adapter_rewrite.dao.Session;
 import nc.isi.fragaria_adapter_rewrite.dao.SessionManager;
 import nc.isi.fragaria_adapter_rewrite.dao.adapters.AdapterManager;
 import nc.isi.fragaria_adapter_rewrite.entities.views.GenericQueryViews.All;
+import nc.isi.fragaria_adapter_rewrite.resources.DataSourceProvider;
+import nc.isi.fragaria_adapter_rewrite.resources.Datasource;
 
+import org.apache.tapestry5.ioc.Registry;
+import org.junit.AfterClass;
 import org.junit.Test;
 
-public class TestCouchDbAdapter extends TestCase {
+public class TestCouchDbAdapter {
 	public static final String DB_NAME = "fragaria-adapter-couchdb-test";
+	private static final Registry registry = CouchDbQaRegistry.INSTANCE.getRegistry();
 	private City paris;
 	private City londres;
 	private City madrid;
@@ -26,8 +32,7 @@ public class TestCouchDbAdapter extends TestCase {
 	private Session session;
 
 	private void init() {
-		System.out.println("init");
-		SessionManager sessionManager = QaRegistry.INSTANCE.getRegistry()
+		SessionManager sessionManager = registry
 				.getService(SessionManager.class);
 		session = sessionManager.create();
 		paris = session.create(City.class);
@@ -43,55 +48,55 @@ public class TestCouchDbAdapter extends TestCase {
 
 	@Test
 	public void testCreate() {
-		try {
-			init();
-			person = session.create(PersonData.class);
-			person.setSession(session);
-			person.setName("Maltat");
-			person.setFirstName("Justin", "Pierre");
-			Adress adress = new Adress();
-			adress.setCity(paris);
-			adress.setStreet("Champs Elysée");
-			person.setAdress(adress);
-			person.setCity(londres);
-			person.addCity(londres);
-			person.addCity(paris);
-			person.addCity(madrid);
-			person.removeCity(londres);
-			session.post();
-			Collection<PersonData> personDatas = session.get(new ByViewQuery<>(
-					PersonData.class, All.class));
-			for (PersonData temp : personDatas) {
-				System.out.println(temp.getId());
-				System.out.println(temp.getName());
-				System.out.println(temp.getFirstName());
-				System.out.println(temp.getAdress());
-				if (temp.getAdress() != null)
-					System.out.println(temp.getAdress().getCity().getName());
-				System.out.println(temp.getCities());
-			}
-			PersonData fromDB = session.getUnique(new IdQuery<>(
-					PersonData.class, person.getId()));
-			fromDB.setSession(session);
-			for (City city : fromDB.getCities()) {
-				System.out.println(city.getRev());
-			}
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		} finally {
-			close();
+		init();
+		person = session.create(PersonData.class);
+		person.setSession(session);
+		person.setName("Maltat");
+		person.setFirstName("Justin", "Pierre");
+		Adress adress = new Adress();
+		adress.setCity(paris);
+		adress.setStreet("Champs Elysée");
+		person.setAdress(adress);
+		person.setCity(londres);
+		person.addCity(londres);
+		person.addCity(paris);
+		person.addCity(madrid);
+		person.removeCity(londres);
+		session.post();
+		Collection<PersonData> personDatas = session.get(new ByViewQuery<>(
+				PersonData.class, All.class));
+		assertTrue(personDatas.size() == 1);
+		for (PersonData temp : personDatas) {
+			System.out.println(temp.getId());
+			System.out.println(temp.getName());
+			System.out.println(temp.getFirstName());
+			System.out.println(temp.getAdress());
+			if (temp.getAdress() != null)
+				System.out.println(temp.getAdress().getCity().getName());
+			System.out.println(temp.getCities());
+		}
+		PersonData fromDB = session.getUnique(new IdQuery<>(PersonData.class,
+				person.getId()));
+		fromDB.setSession(session);
+		for (City city : fromDB.getCities()) {
+			System.out.println(city.getName());
 		}
 	}
 
-	private void close() {
-		CouchDbAdapter couchDbAdapter = QaRegistry.INSTANCE.getRegistry()
+	@AfterClass
+	public static void close() {
+		DataSourceProvider dataSourceProvider = registry
+				.getService(DataSourceProvider.class);
+		CouchDbAdapter couchDbAdapter = registry
 				.getService(CouchDbAdapter.class);
-		couchDbAdapter.deleteDb(DB_NAME);
+		for (Datasource ds : dataSourceProvider.datasources()) {
+			couchDbAdapter.deleteDb(ds);
+		}
 	}
 
 	@Test
 	public void testViewExist() {
-		AdapterManager adapterManager = QaRegistry.INSTANCE.getRegistry()
+		AdapterManager adapterManager = registry
 				.getService(AdapterManager.class);
 		assertTrue(adapterManager
 				.exist(new CouchDbViewConfig("all")

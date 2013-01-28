@@ -58,7 +58,7 @@ public class CouchDbViewConfigBuilder implements ViewConfigBuilder {
 			Class<? extends QueryView> view) {
 		if (All.class.equals(view))
 			return new CouchDbViewConfig(view.getSimpleName().toLowerCase())
-					.setMap(ALL_MAP);
+					.setMap(String.format(ALL_MAP, entityClass.getName()));
 		return null;
 	}
 

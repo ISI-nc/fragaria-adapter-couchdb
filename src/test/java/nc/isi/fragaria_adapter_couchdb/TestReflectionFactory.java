@@ -4,7 +4,7 @@ import java.util.Arrays;
 
 import junit.framework.TestCase;
 import nc.isi.fragaria_adapter_couchdb.model.QaModule;
-import nc.isi.fragaria_adapter_couchdb.model.QaRegistry;
+import nc.isi.fragaria_adapter_couchdb.model.CouchDbQaRegistry;
 import nc.isi.fragaria_adapter_rewrite.entities.Entity;
 import nc.isi.fragaria_adapter_rewrite.services.ReflectionFactory;
 
@@ -18,7 +18,7 @@ public class TestReflectionFactory extends TestCase {
 
 	@Test
 	public void test() {
-		Reflections reflections = QaRegistry.INSTANCE
+		Reflections reflections = CouchDbQaRegistry.INSTANCE
 				.getRegistry()
 				.getService(ReflectionFactory.class)
 				.create(Arrays.asList(QaModule.PACKAGE_NAME),

@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import junit.framework.TestCase;
-import nc.isi.fragaria_adapter_couchdb.model.QaRegistry;
+import nc.isi.fragaria_adapter_couchdb.model.CouchDbQaRegistry;
 import nc.isi.fragaria_adapter_couchdb.views.CouchDbViewConfig;
 import nc.isi.fragaria_adapter_couchdb.views.CouchDbViewConfigBuilder;
 import nc.isi.fragaria_adapter_rewrite.resources.ResourceFinder;
@@ -13,7 +13,7 @@ import nc.isi.fragaria_adapter_rewrite.resources.ResourceFinder;
 import org.junit.Test;
 
 public class TestCouchDbViewConfigBuilder extends TestCase {
-	private final ResourceFinder resourceFinder = QaRegistry.INSTANCE
+	private final ResourceFinder resourceFinder = CouchDbQaRegistry.INSTANCE
 			.getRegistry().getService(ResourceFinder.class);
 
 	@Test
