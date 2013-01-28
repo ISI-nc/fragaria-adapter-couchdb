@@ -6,6 +6,8 @@ import java.util.List;
 
 import junit.framework.TestCase;
 import nc.isi.fragaria_adapter_couchdb.model.QaRegistry;
+import nc.isi.fragaria_adapter_couchdb.views.CouchDbViewConfig;
+import nc.isi.fragaria_adapter_couchdb.views.CouchDbViewConfigBuilder;
 import nc.isi.fragaria_adapter_rewrite.resources.ResourceFinder;
 
 import org.junit.Test;
