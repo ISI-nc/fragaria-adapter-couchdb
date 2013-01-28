@@ -36,6 +36,7 @@ import org.ektorp.BulkDeleteDocument;
 import org.ektorp.CouchDbConnector;
 import org.ektorp.CouchDbInstance;
 import org.ektorp.DbPath;
+import org.ektorp.DocumentNotFoundException;
 import org.ektorp.ViewQuery;
 import org.ektorp.ViewResult;
 import org.ektorp.ViewResult.Row;
@@ -308,6 +309,8 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 	@Override
 	public Boolean exist(ViewConfig viewConfig, EntityMetadata entityMetadata) {
 		DesignDocument dd = getDesignDocument(entityMetadata);
+		if (dd == null)
+			return false;
 		return dd.containsView(viewConfig.getName());
 	}
 
@@ -337,8 +340,10 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 
 	public void deleteDb(String dbName) {
 		try {
-			instanceCache.get(getConnectionData(dbName).getUrl())
-					.deleteDatabase(dbName);
+			CouchDbInstance instance = instanceCache.get(getConnectionData(
+					dbName).getUrl());
+			if (instance.checkIfDbExists(DbPath.fromString(dbName)))
+				instance.deleteDatabase(dbName);
 		} catch (ExecutionException e) {
 			throw new RuntimeException(e);
 		}
@@ -361,8 +366,12 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 	}
 
 	protected DesignDocument getDesignDocument(EntityMetadata entityMetadata) {
-		return getConnector(entityMetadata).get(DesignDocument.class,
-				buildDesignDocId(entityMetadata.getEntityClass()));
+		try {
+			return getConnector(entityMetadata).get(DesignDocument.class,
+					buildDesignDocId(entityMetadata.getEntityClass()));
+		} catch (DocumentNotFoundException e) {
+			return null;
+		}
 	}
 
 }

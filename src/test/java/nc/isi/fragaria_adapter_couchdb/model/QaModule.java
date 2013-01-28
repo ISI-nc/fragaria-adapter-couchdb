@@ -8,13 +8,14 @@ import org.apache.tapestry5.ioc.annotations.SubModule;
 
 @SubModule({ FragariaCouchDbModule.class, YamlDsLoaderModule.class })
 public class QaModule {
+	public static final String[] PACKAGE_NAME = { "nc.isi" };
 
 	public void contributeResourceFinder(Configuration<String> configuration) {
 		configuration.add("nc.isi.fragaria_adapter_couchdb");
 	}
 
 	public void contributeViewInitializer(Configuration<String> configuration) {
-		configuration.add("nc.isi.fragaria_adapter_couchdb");
+		configuration.add(PACKAGE_NAME[0]);
 	}
 
 }
