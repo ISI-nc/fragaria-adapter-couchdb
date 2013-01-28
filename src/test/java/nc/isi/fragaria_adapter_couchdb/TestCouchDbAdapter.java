@@ -3,7 +3,6 @@ package nc.isi.fragaria_adapter_couchdb;
 import java.util.Collection;
 
 import junit.framework.TestCase;
-import nc.isi.fragaria_adapter_couchdb.CouchDbAdapter;
 import nc.isi.fragaria_adapter_couchdb.model.Adress;
 import nc.isi.fragaria_adapter_couchdb.model.City;
 import nc.isi.fragaria_adapter_couchdb.model.PersonData;
@@ -27,6 +26,7 @@ public class TestCouchDbAdapter extends TestCase {
 	private Session session;
 
 	private void init() {
+		System.out.println("init");
 		SessionManager sessionManager = QaRegistry.INSTANCE.getRegistry()
 				.getService(SessionManager.class);
 		session = sessionManager.create();
@@ -79,13 +79,6 @@ public class TestCouchDbAdapter extends TestCase {
 	}
 
 	private void close() {
-		Collection<PersonData> personDatas = session.get(new ByViewQuery<>(
-				PersonData.class, All.class));
-		session.delete(personDatas);
-		Collection<City> cities = session.get(new ByViewQuery<>(City.class,
-				All.class));
-		session.delete(cities);
-		session.post();
 		CouchDbAdapter couchDbAdapter = QaRegistry.INSTANCE.getRegistry()
 				.getService(CouchDbAdapter.class);
 		couchDbAdapter.deleteDb(DB_NAME);
