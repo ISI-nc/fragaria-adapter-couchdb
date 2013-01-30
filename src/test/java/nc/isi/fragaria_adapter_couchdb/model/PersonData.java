@@ -8,8 +8,6 @@ import nc.isi.fragaria_adapter_couchdb.model.CityViews.Name;
 import nc.isi.fragaria_adapter_rewrite.annotations.DsKey;
 import nc.isi.fragaria_adapter_rewrite.annotations.Embeded;
 import nc.isi.fragaria_adapter_rewrite.entities.AbstractEntity;
-import nc.isi.fragaria_adapter_rewrite.entities.EntityMetadataFactory;
-import nc.isi.fragaria_adapter_rewrite.entities.ObjectResolver;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -22,9 +20,8 @@ public class PersonData extends AbstractEntity {
 	public static final String CITIES = "cities";
 	public static final String CITY = "city";
 
-	public PersonData(ObjectNode objectNode, ObjectResolver objectResolver,
-			EntityMetadataFactory entityMetadataFactory) {
-		super(objectNode, objectResolver, entityMetadataFactory);
+	public PersonData(ObjectNode objectNode) {
+		super(objectNode);
 	}
 
 	public PersonData() {

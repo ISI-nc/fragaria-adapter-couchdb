@@ -32,6 +32,7 @@ import nc.isi.fragaria_adapter_rewrite.enums.State;
 import nc.isi.fragaria_adapter_rewrite.resources.DataSourceProvider;
 import nc.isi.fragaria_adapter_rewrite.resources.Datasource;
 
+import org.apache.log4j.Logger;
 import org.ektorp.BulkDeleteDocument;
 import org.ektorp.CouchDbConnector;
 import org.ektorp.CouchDbInstance;
@@ -57,6 +58,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 public class CouchDbAdapter extends AbstractAdapter implements Adapter {
+	private static final Logger LOGGER = Logger.getLogger(CouchDbAdapter.class);
 	private static final String DESIGN_DOC_PREFIXE = "_design/";
 	private static final long MAX_INSTANCE_TIME = 60L;
 	private static final long MAX_CONNECTOR = 30L;
@@ -164,6 +166,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 			if (row.getValueAsNode() instanceof MissingNode) {
 				continue;
 			}
+			LOGGER.info(row.getValueAsNode());
 			collection.add(serializer.deSerialize(
 					ObjectNode.class.cast(row.getValueAsNode()), type));
 		}
@@ -187,9 +190,11 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 					query.getResultType());
 		}
 		CollectionQueryResponse<T> response = executeQuery(query);
-		checkState(response.getResponse().size() == 1,
-				"La requête a renvoyé trop de résultat");
-		return buildQueryResponse(response.getResponse().iterator().next());
+		checkState(response.getResponse().size() <= 1,
+				"La requête a renvoyé trop de résultat : %s",
+				response.getResponse());
+		return buildQueryResponse(response.getResponse().size() == 0 ? null
+				: response.getResponse().iterator().next());
 	}
 
 	@Override

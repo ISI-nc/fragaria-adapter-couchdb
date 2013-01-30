@@ -4,8 +4,6 @@ import nc.isi.fragaria_adapter_couchdb.TestCouchDbAdapter;
 import nc.isi.fragaria_adapter_couchdb.model.CityViews.Name;
 import nc.isi.fragaria_adapter_rewrite.annotations.DsKey;
 import nc.isi.fragaria_adapter_rewrite.entities.AbstractEntity;
-import nc.isi.fragaria_adapter_rewrite.entities.EntityMetadataFactory;
-import nc.isi.fragaria_adapter_rewrite.entities.ObjectResolver;
 
 import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -14,9 +12,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class City extends AbstractEntity {
 	public static final String NAME = "name";
 
-	public City(ObjectNode objectNode, ObjectResolver objectResolver,
-			EntityMetadataFactory entityMetadataFactory) {
-		super(objectNode, objectResolver, entityMetadataFactory);
+	public City(ObjectNode node) {
+		super(node);
 	}
 
 	public City() {
