@@ -65,11 +65,11 @@ public class PersonData extends AbstractEntity {
 	}
 
 	public Boolean addCity(City city) {
-		return addToCollection(CITIES, city, City.class);
+		return add(CITIES, city, City.class);
 	}
 
 	public Boolean removeCity(City city) {
-		return removeFromCollection(CITIES, city, City.class);
+		return remove(CITIES, city, City.class);
 	}
 
 	@Embeded(Name.class)

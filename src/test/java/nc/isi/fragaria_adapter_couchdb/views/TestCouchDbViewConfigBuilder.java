@@ -8,7 +8,7 @@ import junit.framework.TestCase;
 import nc.isi.fragaria_adapter_couchdb.model.CouchDbQaRegistry;
 import nc.isi.fragaria_adapter_couchdb.views.CouchDbViewConfig;
 import nc.isi.fragaria_adapter_couchdb.views.CouchDbViewConfigBuilder;
-import nc.isi.fragaria_adapter_rewrite.resources.ResourceFinder;
+import nc.isi.fragaria_reflection.services.ResourceFinder;
 
 import org.junit.Test;
 

@@ -6,8 +6,8 @@ import java.util.Collection;
 
 import nc.isi.fragaria_adapter_couchdb.model.Adress;
 import nc.isi.fragaria_adapter_couchdb.model.City;
-import nc.isi.fragaria_adapter_couchdb.model.PersonData;
 import nc.isi.fragaria_adapter_couchdb.model.CouchDbQaRegistry;
+import nc.isi.fragaria_adapter_couchdb.model.PersonData;
 import nc.isi.fragaria_adapter_couchdb.views.CouchDbViewConfig;
 import nc.isi.fragaria_adapter_rewrite.dao.ByViewQuery;
 import nc.isi.fragaria_adapter_rewrite.dao.IdQuery;
@@ -24,7 +24,8 @@ import org.junit.Test;
 
 public class TestCouchDbAdapter {
 	public static final String DB_NAME = "fragaria-adapter-couchdb-test";
-	private static final Registry registry = CouchDbQaRegistry.INSTANCE.getRegistry();
+	private static final Registry registry = CouchDbQaRegistry.INSTANCE
+			.getRegistry();
 	private City paris;
 	private City londres;
 	private City madrid;

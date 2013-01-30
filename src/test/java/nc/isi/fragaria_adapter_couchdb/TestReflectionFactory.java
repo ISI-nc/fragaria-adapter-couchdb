@@ -6,7 +6,7 @@ import junit.framework.TestCase;
 import nc.isi.fragaria_adapter_couchdb.model.QaModule;
 import nc.isi.fragaria_adapter_couchdb.model.CouchDbQaRegistry;
 import nc.isi.fragaria_adapter_rewrite.entities.Entity;
-import nc.isi.fragaria_adapter_rewrite.services.ReflectionFactory;
+import nc.isi.fragaria_reflection.services.ReflectionFactory;
 
 import org.junit.Test;
 import org.reflections.Reflections;
