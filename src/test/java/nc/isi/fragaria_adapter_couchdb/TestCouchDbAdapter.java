@@ -19,10 +19,10 @@ import nc.isi.fragaria_adapter_rewrite.resources.DataSourceProvider;
 import nc.isi.fragaria_adapter_rewrite.resources.Datasource;
 
 import org.apache.tapestry5.ioc.Registry;
-import org.junit.AfterClass;
 import org.junit.Test;
 
 public class TestCouchDbAdapter {
+	private static final String SAMPLE_NAME = "Maltat";
 	public static final String DB_NAME = "fragaria-adapter-couchdb-test";
 	private static final Registry registry = CouchDbQaRegistry.INSTANCE
 			.getRegistry();
@@ -52,7 +52,7 @@ public class TestCouchDbAdapter {
 		init();
 		person = session.create(PersonData.class);
 		person.setSession(session);
-		person.setName("Maltat");
+		person.setName(SAMPLE_NAME);
 		person.setFirstName("Justin", "Pierre");
 		Adress adress = new Adress();
 		adress.setCity(paris);
@@ -66,6 +66,9 @@ public class TestCouchDbAdapter {
 		session.post();
 		Collection<PersonData> personDatas = session.get(new ByViewQuery<>(
 				PersonData.class, All.class));
+		PersonData personData = session.getUnique(new ByViewQuery<>(
+				PersonData.class, null).filterBy(PersonData.NAME, SAMPLE_NAME));
+		assertTrue(personData.getName().equals(SAMPLE_NAME));
 		assertTrue(personDatas.size() == 1);
 		for (PersonData temp : personDatas) {
 			System.out.println(temp.getId());
@@ -84,7 +87,7 @@ public class TestCouchDbAdapter {
 		}
 	}
 
-	@AfterClass
+	// @AfterClass
 	public static void close() {
 		DataSourceProvider dataSourceProvider = registry
 				.getService(DataSourceProvider.class);

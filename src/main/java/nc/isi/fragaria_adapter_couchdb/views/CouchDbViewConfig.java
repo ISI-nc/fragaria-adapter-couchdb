@@ -2,6 +2,10 @@ package nc.isi.fragaria_adapter_couchdb.views;
 
 import nc.isi.fragaria_adapter_rewrite.entities.views.ViewConfig;
 
+import org.ektorp.support.DesignDocument.View;
+
+import com.google.common.base.Objects;
+
 public class CouchDbViewConfig implements ViewConfig {
 	private static final String MAP = "function(doc) %s";
 	private static final String REDUCE = "function (key, values, rereduce) %s";
@@ -55,6 +59,23 @@ public class CouchDbViewConfig implements ViewConfig {
 	public CouchDbViewConfig setReduce(String reduce) {
 		this.reduce = reduce;
 		return this;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj == null)
+			return false;
+		if (View.class.isAssignableFrom(obj.getClass())) {
+			View view = (View) obj;
+			return Objects.equal(noSpace(view.getMap()), noSpace(getMap()))
+					&& Objects.equal(noSpace(view.getReduce()),
+							noSpace(getReduce()));
+		}
+		return super.equals(obj);
+	}
+
+	protected String noSpace(String s) {
+		return s != null ? s.replaceAll("\\s", "") : null;
 	}
 
 }

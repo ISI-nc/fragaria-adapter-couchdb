@@ -58,6 +58,8 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 public class CouchDbAdapter extends AbstractAdapter implements Adapter {
+	private static final String KEY_PREFIXE = "doc.";
+	private static final String BY_TOKEN = "By";
 	private static final Logger LOGGER = Logger.getLogger(CouchDbAdapter.class);
 	private static final String DESIGN_DOC_PREFIXE = "_design/";
 	private static final long MAX_INSTANCE_TIME = 60L;
@@ -139,11 +141,43 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 
 	protected <T extends Entity> ViewQuery buildViewQuery(ByViewQuery<T> bVQuery) {
 		checkNotNull(bVQuery);
+		EntityMetadata entityMetadata = entityMetadataFactory.create(bVQuery
+				.getResultType());
+		String viewName = findViewName(bVQuery, entityMetadata);
 		ViewQuery vQuery = new ViewQuery().designDocId(
-				buildDesignDocId(bVQuery)).viewName(
-				bVQuery.getView().getSimpleName().toLowerCase());
+				buildDesignDocId(bVQuery)).viewName(viewName);
 		return bVQuery.getFilter().values().isEmpty() ? vQuery : vQuery
 				.keys(bVQuery.getFilter().values());
+	}
+
+	private String findViewName(ByViewQuery<?> bVQuery,
+			EntityMetadata entityMetadata) {
+		String viewName = bVQuery.getView().getSimpleName().toLowerCase();
+		View view = getView(viewName, entityMetadata);
+		Collection<String> keys = bVQuery.getFilter().keySet();
+		Collection<String> emitKeys = JsHelper.getEmitKeys(view.getMap());
+		if (!emitKeys.containsAll(keys)) {
+			if (viewName.contains(BY_TOKEN))
+				throw new BadViewException(viewName, keys, emitKeys);
+			viewName = findRightView(viewName, view, keys, entityMetadata);
+		}
+		return viewName;
+	}
+
+	private String findRightView(String viewName, View view,
+			Collection<String> keys, EntityMetadata entityMetadata) {
+		String rightViewName = viewName + BY_TOKEN;
+		Collection<String> docKeys = Lists.newArrayList();
+		for (String key : keys) {
+			rightViewName += key;
+			docKeys.add(KEY_PREFIXE + key);
+		}
+		CouchDbViewConfig config = new CouchDbViewConfig(rightViewName);
+		config.setMap(JsHelper.replaceEmitKeys(view.getMap(), docKeys));
+		config.setReduce(view.getReduce());
+		if (!exist(config, entityMetadata))
+			buildView(config, entityMetadata);
+		return rightViewName;
 	}
 
 	protected String buildDesignDocId(ByViewQuery<?> bVQuery) {
@@ -212,8 +246,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		List<Entity> filtered = cleanMultipleEntries(entities);
 		Set<CouchDbConnector> connectorsToFlush = Sets.newHashSet();
 		for (Entity entity : filtered) {
-			CouchDbConnector couchDbConnector = getConnector(entity
-					.getMetadata());
+			CouchDbConnector couchDbConnector = getConnector(entity.metadata());
 			if (!connectorsToFlush.contains(couchDbConnector)) {
 				connectorsToFlush.add(couchDbConnector);
 			}
@@ -312,6 +345,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 
 	@Override
 	public Boolean exist(ViewConfig viewConfig, EntityMetadata entityMetadata) {
+		checkCouchdb(viewConfig, entityMetadata);
 		CouchDbConnector connector = checkNotNull(getConnector(entityMetadata));
 		String designDocId = buildDesignDocId(entityMetadata.getEntityClass());
 		if (!connector.contains(designDocId))
@@ -320,17 +354,16 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 				designDocId);
 		if (designDoc == null)
 			return false;
-		return designDoc.containsView(viewConfig.getName());
+		if (!designDoc.containsView(viewConfig.getName()))
+			return false;
+		View view = designDoc.get(viewConfig.getName());
+		CouchDbViewConfig config = CouchDbViewConfig.class.cast(viewConfig);
+		return config.equals(view);
 	}
 
 	@Override
 	public void buildView(ViewConfig viewConfig, EntityMetadata entityMetadata) {
-		checkNotNull(entityMetadata);
-		checkNotNull(viewConfig);
-		if (!(viewConfig instanceof CouchDbViewConfig))
-			throw new IllegalArgumentException(String.format(
-					"Seules les %s sont géré par %s", CouchDbViewConfig.class,
-					CouchDbAdapter.class));
+		checkCouchdb(viewConfig, entityMetadata);
 		CouchDbConnector connector = checkNotNull(getConnector(entityMetadata));
 		String designDocId = buildDesignDocId(entityMetadata.getEntityClass());
 		DesignDocument dd = connector.contains(designDocId) ? connector.get(
@@ -338,6 +371,16 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 				designDocId);
 		addView(viewConfig, dd);
 		connector.update(dd);
+	}
+
+	protected void checkCouchdb(ViewConfig viewConfig,
+			EntityMetadata entityMetadata) {
+		checkNotNull(entityMetadata);
+		checkNotNull(viewConfig);
+		if (!(viewConfig instanceof CouchDbViewConfig))
+			throw new IllegalArgumentException(String.format(
+					"Seules les %s sont géré par %s", CouchDbViewConfig.class,
+					CouchDbAdapter.class));
 	}
 
 	public void createDb(Datasource datasource) {
@@ -371,6 +414,16 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		}
 	}
 
+	protected DesignDocument getDesignDocument(EntityMetadata entityMetadata) {
+		CouchDbConnector connector = checkNotNull(getConnector(entityMetadata));
+		String designDocId = buildDesignDocId(entityMetadata.getEntityClass());
+		return connector.get(DesignDocument.class, designDocId);
+	}
+
+	protected View getView(String name, EntityMetadata entityMetadata) {
+		return getDesignDocument(entityMetadata).get(name);
+	}
+
 	protected CouchdbConnectionData getConnectionData(Datasource datasource) {
 		return (CouchdbConnectionData) datasource.getDsMetadata()
 				.getConnectionData();
@@ -381,6 +434,12 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		checkNotNull(viewConfig);
 		checkNotNull(dd);
 		CouchDbViewConfig config = CouchDbViewConfig.class.cast(viewConfig);
+		if (dd.containsView(viewConfig.getName())) {
+			View view = dd.get(viewConfig.getName());
+			if (config.equals(view))
+				return;
+			dd.removeView(viewConfig.getName());
+		}
 		dd.addView(viewConfig.getName(),
 				new View(config.getMap(), config.getReduce()));
 	}
