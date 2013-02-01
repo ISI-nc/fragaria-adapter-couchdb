@@ -26,7 +26,6 @@ import nc.isi.fragaria_adapter_rewrite.dao.adapters.Adapter;
 import nc.isi.fragaria_adapter_rewrite.dao.adapters.ElasticSearchAdapter;
 import nc.isi.fragaria_adapter_rewrite.entities.Entity;
 import nc.isi.fragaria_adapter_rewrite.entities.EntityMetadata;
-import nc.isi.fragaria_adapter_rewrite.entities.EntityMetadataFactory;
 import nc.isi.fragaria_adapter_rewrite.entities.views.ViewConfig;
 import nc.isi.fragaria_adapter_rewrite.enums.State;
 import nc.isi.fragaria_adapter_rewrite.resources.DataSourceProvider;
@@ -65,7 +64,6 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 	private static final long MAX_INSTANCE_TIME = 60L;
 	private static final long MAX_CONNECTOR = 30L;
 	private final DataSourceProvider dataSourceProvider;
-	private final EntityMetadataFactory entityMetadataFactory;
 	private final CouchdbSerializer serializer;
 	private final ElasticSearchAdapter elasticSearchAdapter;
 	private final CouchDbObjectMapperProvider objectMapperProvider;
@@ -104,11 +102,9 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 
 	public CouchDbAdapter(DataSourceProvider dataSourceProvider,
 			CouchdbSerializer serializer,
-			EntityMetadataFactory entityMetadataFactory,
 			ElasticSearchAdapter elasticSearchAdapter,
 			CouchDbObjectMapperProvider objectMapperProvider) {
 		this.serializer = serializer;
-		this.entityMetadataFactory = entityMetadataFactory;
 		this.elasticSearchAdapter = elasticSearchAdapter;
 		this.dataSourceProvider = dataSourceProvider;
 		this.objectMapperProvider = objectMapperProvider;
@@ -141,8 +137,8 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 
 	protected <T extends Entity> ViewQuery buildViewQuery(ByViewQuery<T> bVQuery) {
 		checkNotNull(bVQuery);
-		EntityMetadata entityMetadata = entityMetadataFactory.create(bVQuery
-				.getResultType());
+		EntityMetadata entityMetadata = new EntityMetadata(
+				bVQuery.getResultType());
 		String viewName = findViewName(bVQuery, entityMetadata);
 		ViewQuery vQuery = new ViewQuery().designDocId(
 				buildDesignDocId(bVQuery)).viewName(viewName);
@@ -170,7 +166,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		Collection<String> docKeys = Lists.newArrayList();
 		for (String key : keys) {
 			rightViewName += key;
-			docKeys.add(KEY_PREFIXE + key);
+			docKeys.add(buildEmitKey(key, entityMetadata));
 		}
 		CouchDbViewConfig config = new CouchDbViewConfig(rightViewName);
 		config.setMap(JsHelper.replaceEmitKeys(view.getMap(), docKeys));
@@ -178,6 +174,13 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		if (!exist(config, entityMetadata))
 			buildView(config, entityMetadata);
 		return rightViewName;
+	}
+
+	private String buildEmitKey(String string, EntityMetadata entityMetadata) {
+		if (Entity.class.isAssignableFrom(entityMetadata.propertyType(string)))
+			return KEY_PREFIXE + string + "."
+					+ entityMetadata.getJsonPropertyName(Entity.ID);
+		return KEY_PREFIXE + string;
 	}
 
 	protected String buildDesignDocId(ByViewQuery<?> bVQuery) {
@@ -193,7 +196,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 			ViewQuery viewQuery, Class<T> type) {
 		checkNotNull(viewQuery);
 		checkNotNull(type);
-		EntityMetadata entityMetadata = entityMetadataFactory.create(type);
+		EntityMetadata entityMetadata = new EntityMetadata(type);
 		ViewResult result = getConnector(entityMetadata).queryView(viewQuery);
 		Collection<T> collection = Lists.newArrayList();
 		for (Row row : result) {
@@ -211,7 +214,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 			String id, Class<T> type) {
 		checkNotNull(id);
 		checkNotNull(type);
-		EntityMetadata entityMetadata = entityMetadataFactory.create(type);
+		EntityMetadata entityMetadata = new EntityMetadata(type);
 		return buildQueryResponse(getConnector(entityMetadata).get(type, id));
 	}
 

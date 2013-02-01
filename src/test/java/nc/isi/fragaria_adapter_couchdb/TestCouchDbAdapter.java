@@ -19,6 +19,7 @@ import nc.isi.fragaria_adapter_rewrite.resources.DataSourceProvider;
 import nc.isi.fragaria_adapter_rewrite.resources.Datasource;
 
 import org.apache.tapestry5.ioc.Registry;
+import org.junit.AfterClass;
 import org.junit.Test;
 
 public class TestCouchDbAdapter {
@@ -38,20 +39,16 @@ public class TestCouchDbAdapter {
 		session = sessionManager.create();
 		paris = session.create(City.class);
 		paris.setName("Paris");
-		paris.setSession(session);
 		londres = session.create(City.class);
 		londres.setName("Londres");
-		londres.setSession(session);
 		madrid = session.create(City.class);
 		madrid.setName("Madrid");
-		madrid.setSession(session);
 	}
 
 	@Test
 	public void testCreate() {
 		init();
 		person = session.create(PersonData.class);
-		person.setSession(session);
 		person.setName(SAMPLE_NAME);
 		person.setFirstName("Justin", "Pierre");
 		Adress adress = new Adress();
@@ -81,13 +78,12 @@ public class TestCouchDbAdapter {
 		}
 		PersonData fromDB = session.getUnique(new IdQuery<>(PersonData.class,
 				person.getId()));
-		fromDB.setSession(session);
 		for (City city : fromDB.getCities()) {
 			System.out.println(city.getName());
 		}
 	}
 
-	// @AfterClass
+	@AfterClass
 	public static void close() {
 		DataSourceProvider dataSourceProvider = registry
 				.getService(DataSourceProvider.class);
