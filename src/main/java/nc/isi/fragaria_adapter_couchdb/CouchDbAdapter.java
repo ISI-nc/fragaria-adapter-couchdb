@@ -51,7 +51,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -95,7 +95,8 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 					if (!instance.checkIfDbExists(path))
 						instance.createDatabase(path);
 					return new StdCouchDbConnector(couchdbConnectionData
-							.getDbName(), instance, objectMapperProvider);
+							.getDbName(), instance, objectMapperProvider,
+							new FragariaStreamingJsonSerializer());
 				}
 
 			});
@@ -120,7 +121,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		if (query instanceof ByViewQuery) {
 			ByViewQuery<T> bVQuery = (ByViewQuery<T>) query;
 			ViewQuery vQuery = buildViewQuery(bVQuery);
-			LOGGER.debug(vQuery.getKeysAsJson());
+			LOGGER.debug(vQuery.getKey());
 			CollectionQueryResponse<T> response = executeQuery(vQuery,
 					bVQuery.getResultType());
 			if (bVQuery.getPredicate() == null) {
@@ -145,7 +146,15 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		ViewQuery vQuery = new ViewQuery().designDocId(
 				buildDesignDocId(bVQuery)).viewName(viewName);
 		return bVQuery.getFilter().values().isEmpty() ? vQuery : vQuery
-				.key(bVQuery.getFilter().values());
+				.key(buildKey(bVQuery.getFilter().values()));
+	}
+
+	private String buildKey(Collection<Object> values) {
+		String result = values.toString();
+		if (values.size() == 1) {
+			return result.replaceAll("\\[", "").replaceAll("\\]", "");
+		}
+		return result;
 	}
 
 	private String findViewName(ByViewQuery<?> bVQuery,
@@ -267,7 +276,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 
 	private List<Entity> cleanMultipleEntries(List<Entity> entities) {
 		List<Entity> filtered = new LinkedList<>();
-		Multimap<State, Entity> dispatch = LinkedListMultimap.create();
+		Multimap<State, Entity> dispatch = HashMultimap.create();
 		for (Entity entity : entities) {
 			State state = entity.getState();
 			if (!dispatch.containsValue(entity)) {
