@@ -19,7 +19,6 @@ import nc.isi.fragaria_adapter_rewrite.resources.DataSourceProvider;
 import nc.isi.fragaria_adapter_rewrite.resources.Datasource;
 
 import org.apache.tapestry5.ioc.Registry;
-import org.junit.AfterClass;
 import org.junit.Test;
 
 public class TestCouchDbAdapter {
@@ -83,7 +82,6 @@ public class TestCouchDbAdapter {
 		}
 	}
 
-	@AfterClass
 	public static void close() {
 		DataSourceProvider dataSourceProvider = registry
 				.getService(DataSourceProvider.class);

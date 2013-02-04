@@ -119,8 +119,10 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		}
 		if (query instanceof ByViewQuery) {
 			ByViewQuery<T> bVQuery = (ByViewQuery<T>) query;
-			CollectionQueryResponse<T> response = executeQuery(
-					buildViewQuery(bVQuery), bVQuery.getResultType());
+			ViewQuery vQuery = buildViewQuery(bVQuery);
+			LOGGER.debug(vQuery.getKeysAsJson());
+			CollectionQueryResponse<T> response = executeQuery(vQuery,
+					bVQuery.getResultType());
 			if (bVQuery.getPredicate() == null) {
 				return response;
 			}
@@ -143,7 +145,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		ViewQuery vQuery = new ViewQuery().designDocId(
 				buildDesignDocId(bVQuery)).viewName(viewName);
 		return bVQuery.getFilter().values().isEmpty() ? vQuery : vQuery
-				.keys(bVQuery.getFilter().values());
+				.key(bVQuery.getFilter().values());
 	}
 
 	private String findViewName(ByViewQuery<?> bVQuery,
@@ -286,9 +288,6 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		switch (state) {
 		case MODIFIED:
 			switch (oldState) {
-			case NEW:
-				dispatch.put(oldState, entity);
-				break;
 			case MODIFIED:
 				dispatch.put(oldState, entity);
 				break;
@@ -305,6 +304,16 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 				dispatch.remove(oldState, entity);
 				dispatch.put(state, entity);
 				break;
+			default:
+				commitError(entity, oldState, state);
+			}
+			break;
+		case NEW:
+			switch (oldState) {
+			case NEW:
+				dispatch.put(oldState, entity);
+				break;
+
 			default:
 				commitError(entity, oldState, state);
 			}
