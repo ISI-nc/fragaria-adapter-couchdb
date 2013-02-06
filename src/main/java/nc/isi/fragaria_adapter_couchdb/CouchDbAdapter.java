@@ -33,6 +33,7 @@ import nc.isi.fragaria_adapter_rewrite.resources.Datasource;
 
 import org.apache.log4j.Logger;
 import org.ektorp.BulkDeleteDocument;
+import org.ektorp.ComplexKey;
 import org.ektorp.CouchDbConnector;
 import org.ektorp.CouchDbInstance;
 import org.ektorp.DbPath;
@@ -48,6 +49,7 @@ import org.ektorp.support.DesignDocument.View;
 
 import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -100,6 +102,20 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 				}
 
 			});
+	private final LoadingCache<EntityMetadata, DesignDocument> designDocs = CacheBuilder
+			.newBuilder().build(
+					new CacheLoader<EntityMetadata, DesignDocument>() {
+
+						@Override
+						public DesignDocument load(EntityMetadata key) {
+
+							CouchDbConnector connector = checkNotNull(getConnector(key));
+							String designDocId = buildDesignDocId(key
+									.getEntityClass());
+							return connector.get(DesignDocument.class,
+									designDocId);
+						}
+					});
 
 	public CouchDbAdapter(DataSourceProvider dataSourceProvider,
 			CouchdbSerializer serializer,
@@ -121,7 +137,8 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		if (query instanceof ByViewQuery) {
 			ByViewQuery<T> bVQuery = (ByViewQuery<T>) query;
 			ViewQuery vQuery = buildViewQuery(bVQuery);
-			LOGGER.debug(vQuery.getKey());
+			LOGGER.debug(vQuery.getDesignDocId() + " " + vQuery.getViewName()
+					+ " " + vQuery.getKey());
 			CollectionQueryResponse<T> response = executeQuery(vQuery,
 					bVQuery.getResultType());
 			if (bVQuery.getPredicate() == null) {
@@ -145,16 +162,16 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		String viewName = findViewName(bVQuery, entityMetadata);
 		ViewQuery vQuery = new ViewQuery().designDocId(
 				buildDesignDocId(bVQuery)).viewName(viewName);
-		return bVQuery.getFilter().values().isEmpty() ? vQuery : vQuery
-				.key(buildKey(bVQuery.getFilter().values()));
+		return bVQuery.getFilter().values().isEmpty() ? vQuery : addKey(vQuery,
+				bVQuery.getFilter().values());
 	}
 
-	private String buildKey(Collection<Object> values) {
-		String result = values.toString();
+	private ViewQuery addKey(ViewQuery vQuery, Collection<Object> values) {
 		if (values.size() == 1) {
-			return result.replaceAll("\\[", "").replaceAll("\\]", "");
+			return vQuery.key(values.toString().replaceAll("\\[", "")
+					.replaceAll("\\]", ""));
 		}
-		return result;
+		return vQuery.key(ComplexKey.of(values.toArray()));
 	}
 
 	private String findViewName(ByViewQuery<?> bVQuery,
@@ -435,14 +452,12 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		}
 	}
 
-	protected DesignDocument getDesignDocument(EntityMetadata entityMetadata) {
-		CouchDbConnector connector = checkNotNull(getConnector(entityMetadata));
-		String designDocId = buildDesignDocId(entityMetadata.getEntityClass());
-		return connector.get(DesignDocument.class, designDocId);
-	}
-
 	protected View getView(String name, EntityMetadata entityMetadata) {
-		return getDesignDocument(entityMetadata).get(name);
+		try {
+			return designDocs.get(entityMetadata).get(name);
+		} catch (ExecutionException e) {
+			throw Throwables.propagate(e);
+		}
 	}
 
 	protected CouchdbConnectionData getConnectionData(Datasource datasource) {

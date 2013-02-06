@@ -10,11 +10,7 @@ import org.apache.tapestry5.ioc.annotations.SubModule;
 public class QaModule {
 	public static final String[] PACKAGE_NAME = { "nc.isi" };
 
-	public void contributeResourceFinder(Configuration<String> configuration) {
-		configuration.add(PACKAGE_NAME[0]);
-	}
-
-	public void contributeViewInitializer(Configuration<String> configuration) {
+	public void contributeReflectionProvider(Configuration<String> configuration) {
 		configuration.add(PACKAGE_NAME[0]);
 	}
 

@@ -1,5 +1,6 @@
 package nc.isi.fragaria_adapter_couchdb;
 
+import static junit.framework.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collection;
@@ -19,6 +20,7 @@ import nc.isi.fragaria_adapter_rewrite.resources.DataSourceProvider;
 import nc.isi.fragaria_adapter_rewrite.resources.Datasource;
 
 import org.apache.tapestry5.ioc.Registry;
+import org.junit.AfterClass;
 import org.junit.Test;
 
 public class TestCouchDbAdapter {
@@ -82,6 +84,26 @@ public class TestCouchDbAdapter {
 		}
 	}
 
+	@Test
+	public void testGet() {
+		String[] firstNames = { "Justin", "Pierre" };
+		Session session = registry.getService(SessionManager.class).create();
+		PersonData toCreate = session.create(PersonData.class);
+		toCreate.setName("Test");
+		toCreate.setFirstName(firstNames);
+		City city = session.create(City.class);
+		city.setName("MN");
+		session.post();
+		PersonData user = session.getUnique(new ByViewQuery<>(PersonData.class,
+				null).filterBy(PersonData.NAME, "Test").filterBy(
+				PersonData.FIRST_NAME, firstNames));
+		assertNotNull(user);
+		City centre = session.getUnique(new ByViewQuery<>(City.class, null)
+				.filterBy(City.NAME, "MN"));
+		assertNotNull(centre);
+	}
+
+	@AfterClass
 	public static void close() {
 		DataSourceProvider dataSourceProvider = registry
 				.getService(DataSourceProvider.class);
