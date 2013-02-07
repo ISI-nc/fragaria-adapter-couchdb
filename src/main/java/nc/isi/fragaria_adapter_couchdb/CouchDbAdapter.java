@@ -10,7 +10,6 @@ import java.net.URL;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -56,7 +55,6 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 
 public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 	private static final String KEY_PREFIXE = "doc.";
@@ -275,16 +273,17 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 	public void post(List<Entity> entities) {
 		checkNotNull(entities);
 		List<Entity> filtered = cleanMultipleEntries(entities);
-		Set<CouchDbConnector> connectorsToFlush = Sets.newHashSet();
+		Multimap<CouchDbConnector, Object> docsByConnector = HashMultimap
+				.create();
 		for (Entity entity : filtered) {
 			CouchDbConnector couchDbConnector = getConnector(entity.metadata());
-			if (!connectorsToFlush.contains(couchDbConnector)) {
-				connectorsToFlush.add(couchDbConnector);
-			}
-			couchDbConnector.addToBulkBuffer(deleteIfNeeded(entity));
+			docsByConnector.put(couchDbConnector, deleteIfNeeded(entity));
 		}
-		for (CouchDbConnector connector : connectorsToFlush) {
-			connector.flushBulkBuffer();
+		for (CouchDbConnector connector : docsByConnector.keySet()) {
+			Collection<Object> toPost = docsByConnector.get(connector);
+			LOGGER.info(String.format("post %s for connector : %s",
+					toPost.size(), connector.getDatabaseName()));
+			connector.executeAllOrNothing(toPost);
 		}
 		for (Entity entity : filtered) {
 			entity.setState(State.COMMITED);
