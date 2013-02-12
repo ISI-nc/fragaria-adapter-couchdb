@@ -3,6 +3,7 @@ package nc.isi.fragaria_adapter_couchdb;
 import static junit.framework.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
 import java.util.Collection;
 
 import nc.isi.fragaria_adapter_couchdb.model.Adress;
@@ -62,6 +63,10 @@ public class TestCouchDbAdapter {
 		person.addCity(madrid);
 		person.removeCity(londres);
 		session.post();
+		Collection<City> cities = session.get(new ByViewQuery<>(City.class,
+				null).filterBy(City.ID,
+				Arrays.asList(londres.getId(), madrid.getId(), paris.getId())));
+		assertTrue(cities.size() == 3);
 		Collection<PersonData> personDatas = session.get(new ByViewQuery<>(
 				PersonData.class, All.class));
 		PersonData personData = session.getUnique(new ByViewQuery<>(
@@ -93,6 +98,8 @@ public class TestCouchDbAdapter {
 		toCreate.setFirstName(firstNames);
 		City city = session.create(City.class);
 		city.setName("MN");
+		City site = session.create(City.class);
+		site.setName("KOPETO");
 		session.post();
 		PersonData user = session.getUnique(new ByViewQuery<>(PersonData.class,
 				null).filterBy(PersonData.NAME, "Test").filterBy(
@@ -101,6 +108,13 @@ public class TestCouchDbAdapter {
 		City centre = session.getUnique(new ByViewQuery<>(City.class, null)
 				.filterBy(City.NAME, "MN"));
 		assertNotNull(centre);
+		Collection<City> cities = session.get(new ByViewQuery<>(City.class,
+				null).filterBy(City.ID,
+				Arrays.asList(centre.getId(), site.getId())));
+		assertTrue(cities.size() == 2);
+		for (City temp : cities) {
+			System.out.println(temp);
+		}
 	}
 
 	@AfterClass

@@ -36,6 +36,7 @@ import org.ektorp.ComplexKey;
 import org.ektorp.CouchDbConnector;
 import org.ektorp.CouchDbInstance;
 import org.ektorp.DbPath;
+import org.ektorp.DocumentNotFoundException;
 import org.ektorp.ViewQuery;
 import org.ektorp.ViewResult;
 import org.ektorp.ViewResult.Row;
@@ -46,6 +47,7 @@ import org.ektorp.impl.StdCouchDbInstance;
 import org.ektorp.support.DesignDocument;
 import org.ektorp.support.DesignDocument.View;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Throwables;
@@ -136,7 +138,8 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 			ByViewQuery<T> bVQuery = (ByViewQuery<T>) query;
 			ViewQuery vQuery = buildViewQuery(bVQuery);
 			LOGGER.debug(vQuery.getDesignDocId() + " " + vQuery.getViewName()
-					+ " " + vQuery.getKey());
+					+ " key: " + vQuery.getKey() + " keys: "
+					+ vQuery.getKeysAsJson());
 			CollectionQueryResponse<T> response = executeQuery(vQuery,
 					bVQuery.getResultType());
 			if (bVQuery.getPredicate() == null) {
@@ -166,8 +169,18 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 
 	private ViewQuery addKey(ViewQuery vQuery, Collection<Object> values) {
 		if (values.size() == 1) {
-			return vQuery.key(values.toString().replaceAll("\\[", "")
-					.replaceAll("\\]", ""));
+			Object value = values.iterator().next();
+			String key = value.toString();
+			if (value instanceof Collection) {
+				Collection<?> keyValues = Collection.class.cast(value);
+				if (keyValues.size() > 1) {
+					return new ViewQuery().allDocs().keys(keyValues)
+							.includeDocs(true);
+				}
+				key = key.replaceAll("\\[", "").replaceAll("\\]", "");
+			}
+
+			return vQuery.key(key);
 		}
 		return vQuery.key(ComplexKey.of(values.toArray()));
 	}
@@ -203,10 +216,11 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 	}
 
 	private String buildEmitKey(String string, EntityMetadata entityMetadata) {
-		if (Entity.class.isAssignableFrom(entityMetadata.propertyType(string)))
+		if (Entity.class.isAssignableFrom(entityMetadata.propertyType(string))) {
 			return KEY_PREFIXE + string + "."
 					+ entityMetadata.getJsonPropertyName(Entity.ID);
-		return KEY_PREFIXE + string;
+		}
+		return KEY_PREFIXE + entityMetadata.getJsonPropertyName(string);
 	}
 
 	protected String buildDesignDocId(ByViewQuery<?> bVQuery) {
@@ -226,12 +240,16 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		ViewResult result = getConnector(entityMetadata).queryView(viewQuery);
 		Collection<T> collection = Lists.newArrayList();
 		for (Row row : result) {
-			if (row.getValueAsNode() instanceof MissingNode) {
-				continue;
+			JsonNode node = row.getDocAsNode();
+			if (node instanceof MissingNode) {
+				node = row.getValueAsNode();
+				if (node instanceof MissingNode) {
+					continue;
+				}
 			}
-			LOGGER.info(row.getValueAsNode());
-			collection.add(serializer.deSerialize(
-					ObjectNode.class.cast(row.getValueAsNode()), type));
+			LOGGER.info("node : " + node);
+			collection.add(serializer.deSerialize(ObjectNode.class.cast(node),
+					type));
 		}
 		return buildQueryResponse(collection);
 	}
@@ -241,7 +259,13 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		checkNotNull(id);
 		checkNotNull(type);
 		EntityMetadata entityMetadata = new EntityMetadata(type);
-		return buildQueryResponse(getConnector(entityMetadata).get(type, id));
+		T entity = null;
+		try {
+			entity = getConnector(entityMetadata).get(type, id);
+		} catch (DocumentNotFoundException e) {
+			// Alors l'entité est null
+		}
+		return buildQueryResponse(entity);
 	}
 
 	@Override
@@ -286,7 +310,9 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 			connector.executeAllOrNothing(toPost);
 		}
 		for (Entity entity : filtered) {
-			entity.setState(State.COMMITED);
+			if (entity.getState() != State.DELETED) {
+				entity.setState(State.COMMITED);
+			}
 		}
 	}
 
