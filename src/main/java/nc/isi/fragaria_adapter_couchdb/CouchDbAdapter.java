@@ -69,6 +69,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 	private final CouchdbSerializer serializer;
 	private final ElasticSearchAdapter elasticSearchAdapter;
 	private final CouchDbObjectMapperProvider objectMapperProvider;
+	private final FragariaStreamingJsonSerializer fragariaStreamingJsonSerializer = new FragariaStreamingJsonSerializer();
 	private final LoadingCache<URL, CouchDbInstance> instanceCache = CacheBuilder
 			.newBuilder()
 			.expireAfterAccess(MAX_INSTANCE_TIME, TimeUnit.MINUTES)
@@ -98,7 +99,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 						instance.createDatabase(path);
 					return new StdCouchDbConnector(couchdbConnectionData
 							.getDbName(), instance, objectMapperProvider,
-							new FragariaStreamingJsonSerializer());
+							fragariaStreamingJsonSerializer);
 				}
 
 			});
@@ -300,6 +301,8 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		Multimap<CouchDbConnector, Object> docsByConnector = HashMultimap
 				.create();
 		for (Entity entity : filtered) {
+			LOGGER.info(String.format("prepare entity for posting : %s",
+					entity.toJSON()));
 			CouchDbConnector couchDbConnector = getConnector(entity.metadata());
 			docsByConnector.put(couchDbConnector, deleteIfNeeded(entity));
 		}

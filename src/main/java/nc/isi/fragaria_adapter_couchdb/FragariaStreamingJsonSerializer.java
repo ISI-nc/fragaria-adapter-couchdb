@@ -15,6 +15,7 @@ import nc.isi.fragaria_adapter_rewrite.entities.FragariaObjectMapper;
 import nc.isi.fragaria_adapter_rewrite.enums.Completion;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.log4j.Logger;
 import org.ektorp.impl.BulkOperation;
 import org.ektorp.impl.JsonSerializer;
 import org.ektorp.util.Exceptions;
@@ -27,7 +28,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 
 public class FragariaStreamingJsonSerializer implements JsonSerializer {
-
+	private static final Logger LOGGER = Logger
+			.getLogger(FragariaStreamingJsonSerializer.class);
 	private static ExecutorService singletonExecutorService;
 	private final ExecutorService executorService;
 	private final ObjectMapper objectMapper = FragariaObjectMapper.INSTANCE
@@ -60,6 +62,7 @@ public class FragariaStreamingJsonSerializer implements JsonSerializer {
 
 	public BulkOperation createBulkOperation(final Collection<?> objects,
 			final boolean allOrNothing) {
+		LOGGER.info(String.format("creating bulk operation for %s", objects));
 		try {
 			final PipedOutputStream out = new PipedOutputStream();
 			PipedInputStream in = new PipedInputStream(out);
@@ -75,6 +78,8 @@ public class FragariaStreamingJsonSerializer implements JsonSerializer {
 						}
 						jg.writeArrayFieldStart("docs");
 						for (Object o : objects) {
+							LOGGER.info(String.format("o : %s - json : %s", o,
+									toJson(o)));
 							jg.writeRawValue(toJson(o));
 						}
 						jg.writeEndArray();
@@ -97,6 +102,7 @@ public class FragariaStreamingJsonSerializer implements JsonSerializer {
 	}
 
 	public JsonNode toJson(Entity o) {
+		LOGGER.info(o.toJSON(Completion.FULL));
 		return o.toJSON(Completion.FULL);
 	}
 
