@@ -1,18 +1,17 @@
 package nc.isi.fragaria_adapter_couchdb.views;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import junit.framework.TestCase;
 import nc.isi.fragaria_adapter_couchdb.model.CouchDbQaRegistry;
-import nc.isi.fragaria_adapter_couchdb.views.CouchDbViewConfig;
-import nc.isi.fragaria_adapter_couchdb.views.CouchDbViewConfigBuilder;
 import nc.isi.fragaria_reflection.services.ResourceFinder;
 
 import org.junit.Test;
 
-public class TestCouchDbViewConfigBuilder extends TestCase {
+public class TestCouchDbViewConfigBuilder {
 	private final ResourceFinder resourceFinder = CouchDbQaRegistry.INSTANCE
 			.getRegistry().getService(ResourceFinder.class);
 

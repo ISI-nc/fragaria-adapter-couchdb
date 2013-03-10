@@ -69,7 +69,6 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 	private final CouchdbSerializer serializer;
 	private final ElasticSearchAdapter elasticSearchAdapter;
 	private final CouchDbObjectMapperProvider objectMapperProvider;
-	private final FragariaStreamingJsonSerializer fragariaStreamingJsonSerializer = new FragariaStreamingJsonSerializer();
 	private final LoadingCache<URL, CouchDbInstance> instanceCache = CacheBuilder
 			.newBuilder()
 			.expireAfterAccess(MAX_INSTANCE_TIME, TimeUnit.MINUTES)
@@ -98,8 +97,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 					if (!instance.checkIfDbExists(path))
 						instance.createDatabase(path);
 					return new StdCouchDbConnector(couchdbConnectionData
-							.getDbName(), instance, objectMapperProvider,
-							fragariaStreamingJsonSerializer);
+							.getDbName(), instance, objectMapperProvider);
 				}
 
 			});

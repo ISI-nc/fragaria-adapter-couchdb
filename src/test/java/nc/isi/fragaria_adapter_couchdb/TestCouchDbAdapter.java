@@ -12,11 +12,9 @@ import nc.isi.fragaria_adapter_couchdb.model.CouchDbQaRegistry;
 import nc.isi.fragaria_adapter_couchdb.model.PersonData;
 import nc.isi.fragaria_adapter_couchdb.views.CouchDbViewConfig;
 import nc.isi.fragaria_adapter_rewrite.dao.ByViewQuery;
-import nc.isi.fragaria_adapter_rewrite.dao.IdQuery;
 import nc.isi.fragaria_adapter_rewrite.dao.Session;
 import nc.isi.fragaria_adapter_rewrite.dao.SessionManager;
 import nc.isi.fragaria_adapter_rewrite.dao.adapters.AdapterManager;
-import nc.isi.fragaria_adapter_rewrite.entities.views.GenericQueryViews.All;
 import nc.isi.fragaria_adapter_rewrite.resources.DataSourceProvider;
 import nc.isi.fragaria_adapter_rewrite.resources.Datasource;
 
@@ -57,36 +55,38 @@ public class TestCouchDbAdapter {
 		adress.setCity(paris);
 		adress.setStreet("Champs Elysée");
 		person.setAdress(adress);
+		System.out.println(person.toJSON());
 		person.setCity(londres);
 		person.addCity(londres);
 		person.addCity(paris);
 		person.addCity(madrid);
 		person.removeCity(londres);
+		System.out.println(person.toJSON());
 		session.post();
-		Collection<City> cities = session.get(new ByViewQuery<>(City.class,
-				null).filterBy(City.ID,
-				Arrays.asList(londres.getId(), madrid.getId(), paris.getId())));
-		assertTrue(cities.size() == 3);
-		Collection<PersonData> personDatas = session.get(new ByViewQuery<>(
-				PersonData.class, All.class));
-		PersonData personData = session.getUnique(new ByViewQuery<>(
-				PersonData.class, null).filterBy(PersonData.NAME, SAMPLE_NAME));
-		assertTrue(personData.getName().equals(SAMPLE_NAME));
-		assertTrue(personDatas.size() == 1);
-		for (PersonData temp : personDatas) {
-			System.out.println(temp.getId());
-			System.out.println(temp.getName());
-			System.out.println(temp.getFirstName());
-			System.out.println(temp.getAdress());
-			if (temp.getAdress() != null)
-				System.out.println(temp.getAdress().getCity().getName());
-			System.out.println(temp.getCities());
-		}
-		PersonData fromDB = session.getUnique(new IdQuery<>(PersonData.class,
-				person.getId()));
-		for (City city : fromDB.getCities()) {
-			System.out.println(city.getName());
-		}
+		// Collection<City> cities = session.get(new ByViewQuery<>(City.class,
+		// null).filterBy(City.ID,
+		// Arrays.asList(londres.getId(), madrid.getId(), paris.getId())));
+		// assertTrue(cities.size() == 3);
+		// Collection<PersonData> personDatas = session.get(new ByViewQuery<>(
+		// PersonData.class, All.class));
+		// PersonData personData = session.getUnique(new ByViewQuery<>(
+		// PersonData.class, null).filterBy(PersonData.NAME, SAMPLE_NAME));
+		// assertTrue(personData.getName().equals(SAMPLE_NAME));
+		// assertTrue(personDatas.size() == 1);
+		// for (PersonData temp : personDatas) {
+		// System.out.println(temp.getId());
+		// System.out.println(temp.getName());
+		// System.out.println(temp.getFirstName());
+		// System.out.println(temp.getAdress());
+		// if (temp.getAdress() != null)
+		// System.out.println(temp.getAdress().getCity().getName());
+		// System.out.println(temp.getCities());
+		// }
+		// PersonData fromDB = session.getUnique(new IdQuery<>(PersonData.class,
+		// person.getId()));
+		// for (City city : fromDB.getCities()) {
+		// System.out.println(city.getName());
+		// }
 	}
 
 	@Test
