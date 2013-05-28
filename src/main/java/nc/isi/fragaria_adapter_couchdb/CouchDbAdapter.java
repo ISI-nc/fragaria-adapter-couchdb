@@ -169,7 +169,8 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 	private ViewQuery addKey(ViewQuery vQuery, Collection<Object> values) {
 		if (values.size() == 1) {
 			Object value = values.iterator().next();
-			String key = value.toString();
+			
+			String key = value == null ? "" : value.toString();
 			if (value instanceof Collection) {
 				Collection<?> keyValues = Collection.class.cast(value);
 				if (keyValues.size() > 1) {
