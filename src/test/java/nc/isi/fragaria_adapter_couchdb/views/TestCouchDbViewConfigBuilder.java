@@ -2,7 +2,6 @@ package nc.isi.fragaria_adapter_couchdb.views;
 
 import static org.junit.Assert.assertTrue;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,7 +17,7 @@ public class TestCouchDbViewConfigBuilder {
 	@Test
 	public void testBuildFromJsFile() {
 		CouchDbViewConfigBuilder builder = new CouchDbViewConfigBuilder();
-		List<File> files = new ArrayList<>(
+		List<String> files = new ArrayList<>(
 				resourceFinder.getResourcesMatching("test.js"));
 		CouchDbViewConfig conf = (CouchDbViewConfig) builder.build("test",
 				files.get(0));

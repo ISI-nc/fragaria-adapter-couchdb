@@ -10,6 +10,7 @@ import java.net.URL;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -29,6 +30,7 @@ import nc.isi.fragaria_adapter_rewrite.entities.views.ViewConfig;
 import nc.isi.fragaria_adapter_rewrite.enums.State;
 import nc.isi.fragaria_adapter_rewrite.resources.DataSourceProvider;
 import nc.isi.fragaria_adapter_rewrite.resources.Datasource;
+import nc.isi.fragaria_adapter_rewrite.utils.MyEntry;
 
 import org.apache.log4j.Logger;
 import org.ektorp.BulkDeleteDocument;
@@ -40,6 +42,7 @@ import org.ektorp.DocumentNotFoundException;
 import org.ektorp.ViewQuery;
 import org.ektorp.ViewResult;
 import org.ektorp.ViewResult.Row;
+import org.ektorp.changes.ChangesCommand;
 import org.ektorp.http.HttpClient;
 import org.ektorp.http.StdHttpClient;
 import org.ektorp.impl.StdCouchDbConnector;
@@ -81,6 +84,21 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 					return new StdCouchDbInstance(httpClient);
 				}
 
+			});
+
+	private final LoadingCache<Entry<String, Integer>, ChangeFeedHolder> changesFeeds = CacheBuilder
+			.newBuilder()
+			.build(new CacheLoader<Entry<String, Integer>, ChangeFeedHolder>() {
+
+				@Override
+				public ChangeFeedHolder load(Entry<String, Integer> key)
+						throws ExecutionException {
+					ChangesCommand cmd = new ChangesCommand.Builder()
+							.since(key.getValue()).includeDocs(true).build();
+					return new ChangeFeedHolder(connectors.get(
+							dataSourceProvider.provide(key.getKey()))
+							.changesFeed(cmd), key.getKey(), key.getValue());
+				}
 			});
 	private final LoadingCache<Datasource, CouchDbConnector> connectors = CacheBuilder
 			.newBuilder().expireAfterAccess(MAX_CONNECTOR, TimeUnit.MINUTES)
@@ -301,8 +319,16 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		for (Entity entity : filtered) {
 			LOGGER.info(String.format("prepare entity for posting : %s",
 					entity.toJSON()));
+			Object toPost = checkNotNull(entity);
+			if (entity.getState() == State.DELETED) {
+				if (entity.getRev() == null) {
+					continue;
+				}
+				toPost = new BulkDeleteDocument(entity.getId().toString(),
+						entity.getRev().toString());
+			}
 			CouchDbConnector couchDbConnector = getConnector(entity.metadata());
-			docsByConnector.put(couchDbConnector, deleteIfNeeded(entity));
+			docsByConnector.put(couchDbConnector, toPost);
 		}
 		for (CouchDbConnector connector : docsByConnector.keySet()) {
 			Collection<Object> toPost = docsByConnector.get(connector);
@@ -356,6 +382,9 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 				dispatch.remove(oldState, entity);
 				dispatch.put(state, entity);
 				break;
+			case DELETED:
+				dispatch.put(oldState, entity);
+				break;
 			default:
 				commitError(entity, oldState, state);
 			}
@@ -396,15 +425,6 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 			throw new RuntimeException(e);
 		}
 		return couchDbConnector;
-	}
-
-	private Object deleteIfNeeded(Entity entity) {
-		checkNotNull(entity);
-		if (entity.getState() == State.DELETED) {
-			return new BulkDeleteDocument(entity.getId().toString(), entity
-					.getRev().toString());
-		}
-		return entity;
 	}
 
 	@Override
@@ -504,6 +524,14 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		}
 		dd.addView(viewConfig.getName(),
 				new View(config.getMap(), config.getReduce()));
+	}
+
+	public ChangeFeedHolder getChangesFeeds(String dsKey, int sequence) {
+		try {
+			return changesFeeds.get(new MyEntry<>(dsKey, sequence));
+		} catch (ExecutionException e) {
+			throw Throwables.propagate(e);
+		}
 	}
 
 }

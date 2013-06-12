@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 @DsKey(TestCouchDbAdapter.DB_NAME)
 public class City extends AbstractEntity {
 	public static final String NAME = "name";
+	public static final String PERSONDATA = "personData";
 
 	public City(ObjectNode node) {
 		super(node);
@@ -32,6 +33,14 @@ public class City extends AbstractEntity {
 	@Override
 	public String toString() {
 		return toJSON().toString();
+	}
+
+	public void setPersonData(PersonData personData) {
+		writeProperty(PERSONDATA, personData);
+	}
+
+	public PersonData getPersonData() {
+		return readProperty(PersonData.class, PERSONDATA);
 	}
 
 }
