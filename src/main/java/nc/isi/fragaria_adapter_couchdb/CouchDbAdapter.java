@@ -154,7 +154,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		if (query instanceof ByViewQuery) {
 			ByViewQuery<T> bVQuery = (ByViewQuery<T>) query;
 			ViewQuery vQuery = buildViewQuery(bVQuery);
-			LOGGER.debug(vQuery.getDesignDocId() + " " + vQuery.getViewName()
+			LOGGER.info(vQuery.getDesignDocId() + " " + vQuery.getViewName()
 					+ " key: " + vQuery.getKey() + " keys: "
 					+ vQuery.getKeysAsJson());
 			CollectionQueryResponse<T> response = executeQuery(vQuery,
@@ -180,6 +180,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		String viewName = findViewName(bVQuery, entityMetadata);
 		ViewQuery vQuery = new ViewQuery().designDocId(
 				buildDesignDocId(bVQuery)).viewName(viewName);
+		LOGGER.debug("new ViewQuery().designDocId("+buildDesignDocId(bVQuery)+").viewName("+viewName+")");
 		return bVQuery.getFilter().values().isEmpty() ? vQuery : addKey(vQuery,
 				bVQuery.getFilter().values());
 	}
@@ -187,7 +188,8 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 	private ViewQuery addKey(ViewQuery vQuery, Collection<Object> values) {
 		if (values.size() == 1) {
 			Object value = values.iterator().next();
-			String key = value.toString();
+			
+			String key = value == null ? "" : value.toString();
 			if (value instanceof Collection) {
 				Collection<?> keyValues = Collection.class.cast(value);
 				if (keyValues.size() > 1) {
@@ -196,7 +198,10 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 				}
 				key = key.replaceAll("\\[", "").replaceAll("\\]", "");
 			}
-
+			if (value instanceof Boolean){
+				Boolean booleanKey = new Boolean(key);
+				return vQuery.key(booleanKey);
+			}
 			return vQuery.key(key);
 		}
 		return vQuery.key(ComplexKey.of(values.toArray()));
@@ -255,6 +260,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		checkNotNull(type);
 		EntityMetadata entityMetadata = new EntityMetadata(type);
 		ViewResult result = getConnector(entityMetadata).queryView(viewQuery);
+		LOGGER.debug("viewquery : "+viewQuery);
 		Collection<T> collection = Lists.newArrayList();
 		for (Row row : result) {
 			JsonNode node = row.getDocAsNode();
