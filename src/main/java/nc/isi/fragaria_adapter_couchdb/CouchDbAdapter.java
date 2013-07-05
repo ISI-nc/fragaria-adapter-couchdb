@@ -6,6 +6,8 @@ import static com.mysema.query.alias.Alias.$;
 import static com.mysema.query.alias.Alias.alias;
 import static com.mysema.query.collections.MiniApi.from;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -33,6 +35,7 @@ import nc.isi.fragaria_adapter_rewrite.resources.Datasource;
 import nc.isi.fragaria_adapter_rewrite.utils.MyEntry;
 
 import org.apache.log4j.Logger;
+import org.ektorp.AttachmentInputStream;
 import org.ektorp.BulkDeleteDocument;
 import org.ektorp.ComplexKey;
 import org.ektorp.CouchDbConnector;
@@ -180,7 +183,8 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		String viewName = findViewName(bVQuery, entityMetadata);
 		ViewQuery vQuery = new ViewQuery().designDocId(
 				buildDesignDocId(bVQuery)).viewName(viewName);
-		LOGGER.debug("new ViewQuery().designDocId("+buildDesignDocId(bVQuery)+").viewName("+viewName+")");
+		LOGGER.debug("new ViewQuery().designDocId(" + buildDesignDocId(bVQuery)
+				+ ").viewName(" + viewName + ")");
 		return bVQuery.getFilter().values().isEmpty() ? vQuery : addKey(vQuery,
 				bVQuery.getFilter().values());
 	}
@@ -188,7 +192,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 	private ViewQuery addKey(ViewQuery vQuery, Collection<Object> values) {
 		if (values.size() == 1) {
 			Object value = values.iterator().next();
-			
+
 			String key = value == null ? "" : value.toString();
 			if (value instanceof Collection) {
 				Collection<?> keyValues = Collection.class.cast(value);
@@ -198,7 +202,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 				}
 				key = key.replaceAll("\\[", "").replaceAll("\\]", "");
 			}
-			if (value instanceof Boolean){
+			if (value instanceof Boolean) {
 				Boolean booleanKey = new Boolean(key);
 				return vQuery.key(booleanKey);
 			}
@@ -260,7 +264,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		checkNotNull(type);
 		EntityMetadata entityMetadata = new EntityMetadata(type);
 		ViewResult result = getConnector(entityMetadata).queryView(viewQuery);
-		LOGGER.debug("viewquery : "+viewQuery);
+		LOGGER.debug("viewquery : " + viewQuery);
 		Collection<T> collection = Lists.newArrayList();
 		for (Row row : result) {
 			JsonNode node = row.getDocAsNode();
@@ -344,9 +348,39 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		}
 		for (Entity entity : filtered) {
 			if (entity.getState() != State.DELETED) {
+				createNewAttachment(entity);
 				entity.setState(State.COMMITED);
 			}
 		}
+	}
+
+	private void createNewAttachment(Entity entity) {
+		if (entity instanceof CouchDbAttachment
+				&& entity.getState() == State.NEW) {
+			InputStream inputStream = ((CouchDbAttachment) entity)
+					.getInputStream();
+			AttachmentInputStream a = new AttachmentInputStream(
+					((CouchDbAttachment) entity).getId(),
+					inputStream, ((CouchDbAttachment) entity).getContentType());
+			getConnector(entity.metadata()).createAttachment(
+					((CouchDbAttachment) entity).getParent().getId(),
+					((CouchDbAttachment) entity).getParent().getRev(), a);
+			updateParentRev(entity);
+			try {
+				a.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			((CouchDbAttachment) entity).closeInputStream();
+		}
+	}
+
+	private void updateParentRev(Entity entity) {
+		String parentNewRev = getConnector(entity.metadata())
+				.getCurrentRevision(
+						((CouchDbAttachment) entity).getParent().getId());
+		((CouchDbAttachment) entity).getParent().setRev(parentNewRev);
 	}
 
 	private List<Entity> cleanMultipleEntries(List<Entity> entities) {
