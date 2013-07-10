@@ -193,7 +193,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		if (values.size() == 1) {
 			Object value = values.iterator().next();
 
-			String key = value == null ? "" : value.toString();
+			String key = value == null ? "" : value.toString();			
 			if (value instanceof Collection) {
 				Collection<?> keyValues = Collection.class.cast(value);
 				if (keyValues.size() > 1) {
