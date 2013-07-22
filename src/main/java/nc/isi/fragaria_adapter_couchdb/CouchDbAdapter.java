@@ -208,7 +208,15 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 			}
 			return vQuery.key(key);
 		}
-		return vQuery.key(ComplexKey.of(values.toArray()));
+		List<Object> keys = Lists.newArrayList();
+		for(Object value : values){
+			if(value instanceof Entity)
+				keys.add(value.toString());
+			else
+				keys.add(value);
+		}
+		System.out.println("keys of couchdb : "+ComplexKey.of(keys.toArray()));
+		return vQuery.key(ComplexKey.of(keys.toArray()));
 	}
 
 	private String findViewName(ByViewQuery<?> bVQuery,
