@@ -157,6 +157,11 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		if (query instanceof ByViewQuery) {
 			ByViewQuery<T> bVQuery = (ByViewQuery<T>) query;
 			ViewQuery vQuery = buildViewQuery(bVQuery);
+			if(vQuery.getDesignDocId()==null){
+				System.out.println("le designdocid est null");
+			}
+			else
+				System.out.println("c'est faux !");
 			LOGGER.info(vQuery.getDesignDocId() + " " + vQuery.getViewName()
 					+ " key: " + vQuery.getKey() + " keys: "
 					+ vQuery.getKeysAsJson());
@@ -183,8 +188,15 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		String viewName = findViewName(bVQuery, entityMetadata);
 		ViewQuery vQuery = new ViewQuery().designDocId(
 				buildDesignDocId(bVQuery)).viewName(viewName);
+		System.out.println("******************* le designdoc");
+		System.out.println(vQuery.getDesignDocId());
 		LOGGER.debug("new ViewQuery().designDocId(" + buildDesignDocId(bVQuery)
 				+ ").viewName(" + viewName + ")");
+		System.out.println(bVQuery.getFilter().values().isEmpty());
+		
+		System.out.println(addKey(vQuery,
+				bVQuery.getFilter().values()).getDesignDocId());
+		
 		return bVQuery.getFilter().values().isEmpty() ? vQuery : addKey(vQuery,
 				bVQuery.getFilter().values());
 	}
@@ -194,10 +206,10 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 			Object value = values.iterator().next();
 
 			String key = value == null ? "" : value.toString();			
-			if (value instanceof Collection) {
+			if (value instanceof Collection) {				
 				Collection<?> keyValues = Collection.class.cast(value);
 				if (keyValues.size() > 1) {
-					return new ViewQuery().allDocs().keys(keyValues)
+					return vQuery.keys(keyValues)
 							.includeDocs(true);
 				}
 				key = key.replaceAll("\\[", "").replaceAll("\\]", "");
