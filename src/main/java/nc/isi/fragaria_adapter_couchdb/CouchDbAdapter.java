@@ -205,6 +205,10 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 				Boolean booleanKey = new Boolean(key);
 				return vQuery.key(booleanKey);
 			}
+			
+			if (value instanceof Class){
+				key = ((Class) value).getCanonicalName();
+			}
 			return vQuery.key(key);
 		}
 		List<Object> keys = Lists.newArrayList();
