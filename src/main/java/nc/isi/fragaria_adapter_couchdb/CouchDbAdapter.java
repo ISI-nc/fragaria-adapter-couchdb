@@ -583,5 +583,15 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 			throw Throwables.propagate(e);
 		}
 	}
+	
+	public long getLastSeq(String dsKey) {
+			try {
+				return connectors.get(dataSourceProvider.provide(dsKey)).getDbInfo().getUpdateSeq();
+			} catch (ExecutionException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return 0;
+	}
 
 }
