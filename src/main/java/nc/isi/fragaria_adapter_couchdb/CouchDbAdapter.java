@@ -4,7 +4,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.mysema.query.alias.Alias.$;
 import static com.mysema.query.alias.Alias.alias;
-import static com.mysema.query.collections.MiniApi.from;
+import static com.mysema.query.collections.CollQueryFactory.from;
 
 import java.net.URL;
 import java.util.Collection;
@@ -19,18 +19,18 @@ import nc.isi.fragaria_adapter_rewrite.dao.ByViewQuery;
 import nc.isi.fragaria_adapter_rewrite.dao.CollectionQueryResponse;
 import nc.isi.fragaria_adapter_rewrite.dao.IdQuery;
 import nc.isi.fragaria_adapter_rewrite.dao.Query;
-import nc.isi.fragaria_adapter_rewrite.dao.SearchQuery;
 import nc.isi.fragaria_adapter_rewrite.dao.UniqueQueryResponse;
 import nc.isi.fragaria_adapter_rewrite.dao.adapters.AbstractAdapter;
 import nc.isi.fragaria_adapter_rewrite.dao.adapters.Adapter;
-import nc.isi.fragaria_adapter_rewrite.dao.adapters.ElasticSearchAdapter;
 import nc.isi.fragaria_adapter_rewrite.entities.Entity;
 import nc.isi.fragaria_adapter_rewrite.entities.EntityMetadata;
 import nc.isi.fragaria_adapter_rewrite.entities.views.ViewConfig;
 import nc.isi.fragaria_adapter_rewrite.enums.State;
 import nc.isi.fragaria_adapter_rewrite.resources.DataSourceProvider;
 import nc.isi.fragaria_adapter_rewrite.resources.Datasource;
-import nc.isi.fragaria_adapter_rewrite.utils.MyEntry;
+import nc.isi.fragaria_adapter_rewrite.services.EntityMetadataProvider;
+import nc.isi.fragaria_reflection.utils.MyEntry;
+import nc.isi.fragaria_reflection.utils.ObjectMetadata;
 
 import org.apache.log4j.Logger;
 import org.ektorp.BulkDeleteDocument;
@@ -70,8 +70,8 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 	private static final long MAX_CONNECTOR = 30L;
 	private final DataSourceProvider dataSourceProvider;
 	private final CouchdbSerializer serializer;
-	private final ElasticSearchAdapter elasticSearchAdapter;
 	private final CouchDbObjectMapperProvider objectMapperProvider;
+	private final EntityMetadataProvider entityMetadataProvider;
 	private final LoadingCache<URL, CouchDbInstance> instanceCache = CacheBuilder
 			.newBuilder()
 			.expireAfterAccess(MAX_INSTANCE_TIME, TimeUnit.MINUTES)
@@ -136,12 +136,12 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 
 	public CouchDbAdapter(DataSourceProvider dataSourceProvider,
 			CouchdbSerializer serializer,
-			ElasticSearchAdapter elasticSearchAdapter,
-			CouchDbObjectMapperProvider objectMapperProvider) {
+			CouchDbObjectMapperProvider objectMapperProvider,
+			EntityMetadataProvider entityMetadataProvider) {
 		this.serializer = serializer;
-		this.elasticSearchAdapter = elasticSearchAdapter;
 		this.dataSourceProvider = dataSourceProvider;
 		this.objectMapperProvider = objectMapperProvider;
+		this.entityMetadataProvider = entityMetadataProvider;
 	}
 
 	public <T extends Entity> CollectionQueryResponse<T> executeQuery(
@@ -166,21 +166,19 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 			return buildQueryResponse(from($(entity), response.getResponse())
 					.where(bVQuery.getPredicate()).list($(entity)));
 		}
-		if (query instanceof SearchQuery) {
-			return elasticSearchAdapter.executeQuery((SearchQuery<T>) query);
-		}
 		throw new IllegalArgumentException(String.format(
 				"Type de query inconnu : %s", query.getClass()));
 	}
 
 	protected <T extends Entity> ViewQuery buildViewQuery(ByViewQuery<T> bVQuery) {
 		checkNotNull(bVQuery);
-		EntityMetadata entityMetadata = new EntityMetadata(
-				bVQuery.getResultType());
+		EntityMetadata entityMetadata = entityMetadataProvider.provide(bVQuery
+				.getResultType());
 		String viewName = findViewName(bVQuery, entityMetadata);
 		ViewQuery vQuery = new ViewQuery().designDocId(
 				buildDesignDocId(bVQuery)).viewName(viewName);
-		LOGGER.debug("new ViewQuery().designDocId("+buildDesignDocId(bVQuery)+").viewName("+viewName+")");
+		LOGGER.debug("new ViewQuery().designDocId(" + buildDesignDocId(bVQuery)
+				+ ").viewName(" + viewName + ")");
 		return bVQuery.getFilter().values().isEmpty() ? vQuery : addKey(vQuery,
 				bVQuery.getFilter().values());
 	}
@@ -188,7 +186,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 	private ViewQuery addKey(ViewQuery vQuery, Collection<Object> values) {
 		if (values.size() == 1) {
 			Object value = values.iterator().next();
-			
+
 			String key = value == null ? "" : value.toString();
 			if (value instanceof Collection) {
 				Collection<?> keyValues = Collection.class.cast(value);
@@ -198,7 +196,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 				}
 				key = key.replaceAll("\\[", "").replaceAll("\\]", "");
 			}
-			if (value instanceof Boolean){
+			if (value instanceof Boolean) {
 				Boolean booleanKey = new Boolean(key);
 				return vQuery.key(booleanKey);
 			}
@@ -258,9 +256,9 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 			ViewQuery viewQuery, Class<T> type) {
 		checkNotNull(viewQuery);
 		checkNotNull(type);
-		EntityMetadata entityMetadata = new EntityMetadata(type);
+		EntityMetadata entityMetadata = entityMetadataProvider.provide(type);
 		ViewResult result = getConnector(entityMetadata).queryView(viewQuery);
-		LOGGER.debug("viewquery : "+viewQuery);
+		LOGGER.debug("viewquery : " + viewQuery);
 		Collection<T> collection = Lists.newArrayList();
 		for (Row row : result) {
 			JsonNode node = row.getDocAsNode();
@@ -281,7 +279,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 			String id, Class<T> type) {
 		checkNotNull(id);
 		checkNotNull(type);
-		EntityMetadata entityMetadata = new EntityMetadata(type);
+		EntityMetadata entityMetadata = entityMetadataProvider.provide(type);
 		T entity = null;
 		try {
 			entity = getConnector(entityMetadata).get(type, id);
@@ -464,7 +462,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 	}
 
 	protected void checkCouchdb(ViewConfig viewConfig,
-			EntityMetadata entityMetadata) {
+			ObjectMetadata entityMetadata) {
 		checkNotNull(entityMetadata);
 		checkNotNull(viewConfig);
 		if (!(viewConfig instanceof CouchDbViewConfig))

@@ -37,7 +37,7 @@
 		<dependency>
 			<groupId>org.ektorp</groupId>
 			<artifactId>org.ektorp</artifactId>
-			<version>1.4.0-SNAPSHOT</version>
+			<version>1.4.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.mozilla</groupId>
@@ -52,7 +52,7 @@
 		</dependency>
 	</dependencies>
 	<build>
-		<finalName>fragaria-adapter-rewrite</finalName>
+		<finalName>fragaria-adapter-couchdb</finalName>
 		<pluginManagement>
 			<plugins>
 				<plugin>
