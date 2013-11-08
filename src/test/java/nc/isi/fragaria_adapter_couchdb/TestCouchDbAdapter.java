@@ -95,6 +95,7 @@ public class TestCouchDbAdapter {
 		Session session = registry.getService(SessionManager.class).create();
 		PersonData toCreate = session.create(PersonData.class);
 		toCreate.setName("Test");
+		toCreate.setFirstName("TestFirstName");
 		toCreate.setFirstName(firstNames);
 		City city = session.create(City.class);
 		city.setName("MN");
@@ -106,7 +107,7 @@ public class TestCouchDbAdapter {
 				PersonData.FIRST_NAME, firstNames));
 		assertNotNull(user);
 		City centre = session.getUnique(new ByViewQuery<>(City.class, null)
-				.filterBy(City.NAME, "MN"));
+				.filterBy(City.NAME,"MN"));
 		assertNotNull(centre);
 		Collection<City> cities = session.get(new ByViewQuery<>(City.class,
 				null).filterBy(City.ID,

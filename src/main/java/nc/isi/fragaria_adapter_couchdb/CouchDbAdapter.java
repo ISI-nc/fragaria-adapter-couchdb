@@ -6,6 +6,8 @@ import static com.mysema.query.alias.Alias.$;
 import static com.mysema.query.alias.Alias.alias;
 import static com.mysema.query.collections.CollQueryFactory.from;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -33,6 +35,7 @@ import nc.isi.fragaria_reflection.utils.MyEntry;
 import nc.isi.fragaria_reflection.utils.ObjectMetadata;
 
 import org.apache.log4j.Logger;
+import org.ektorp.AttachmentInputStream;
 import org.ektorp.BulkDeleteDocument;
 import org.ektorp.ComplexKey;
 import org.ektorp.CouchDbConnector;
@@ -187,11 +190,11 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		if (values.size() == 1) {
 			Object value = values.iterator().next();
 
-			String key = value == null ? "" : value.toString();
-			if (value instanceof Collection) {
+			String key = value == null ? "" : value.toString();			
+			if (value instanceof Collection) {	
 				Collection<?> keyValues = Collection.class.cast(value);
 				if (keyValues.size() > 1) {
-					return new ViewQuery().allDocs().keys(keyValues)
+					return vQuery.keys(keyValues)
 							.includeDocs(true);
 				}
 				key = key.replaceAll("\\[", "").replaceAll("\\]", "");
@@ -200,9 +203,20 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 				Boolean booleanKey = new Boolean(key);
 				return vQuery.key(booleanKey);
 			}
+			
+			if (value instanceof Class){
+				key = ((Class) value).getCanonicalName();
+			}
 			return vQuery.key(key);
 		}
-		return vQuery.key(ComplexKey.of(values.toArray()));
+		List<Object> keys = Lists.newArrayList();
+		for(Object value : values){
+			if(value instanceof Entity)
+				keys.add(value.toString());
+			else
+				keys.add(value);
+		}
+		return vQuery.key(ComplexKey.of(keys.toArray()));
 	}
 
 	private String findViewName(ByViewQuery<?> bVQuery,
@@ -342,9 +356,39 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		}
 		for (Entity entity : filtered) {
 			if (entity.getState() != State.DELETED) {
+				createNewAttachment(entity);
 				entity.setState(State.COMMITED);
 			}
 		}
+	}
+
+	private void createNewAttachment(Entity entity) {
+		if (entity instanceof CouchDbAttachment
+				&& entity.getState() == State.NEW) {
+			InputStream inputStream = ((CouchDbAttachment) entity)
+					.getInputStream();
+			AttachmentInputStream a = new AttachmentInputStream(
+					((CouchDbAttachment) entity).getId(),
+					inputStream, ((CouchDbAttachment) entity).getContentType());
+			getConnector(entity.metadata()).createAttachment(
+					((CouchDbAttachment) entity).getParent().getId(),
+					((CouchDbAttachment) entity).getParent().getRev(), a);
+			updateParentRev(entity);
+			try {
+				a.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			((CouchDbAttachment) entity).closeInputStream();
+		}
+	}
+
+	private void updateParentRev(Entity entity) {
+		String parentNewRev = getConnector(entity.metadata())
+				.getCurrentRevision(
+						((CouchDbAttachment) entity).getParent().getId());
+		((CouchDbAttachment) entity).getParent().setRev(parentNewRev);
 	}
 
 	private List<Entity> cleanMultipleEntries(List<Entity> entities) {
@@ -536,6 +580,16 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		} catch (ExecutionException e) {
 			throw Throwables.propagate(e);
 		}
+	}
+	
+	public long getLastSeq(String dsKey) {
+			try {
+				return connectors.get(dataSourceProvider.provide(dsKey)).getDbInfo().getUpdateSeq();
+			} catch (ExecutionException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return 0;
 	}
 
 }
