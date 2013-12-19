@@ -6,12 +6,9 @@ import nc.isi.fragaria_adapter_rewrite.entities.AbstractEntity;
 import nc.isi.fragaria_adapter_rewrite.entities.attachments.EntityAttachment;
 
 public interface CouchDbAttachment<T extends AbstractEntity> extends EntityAttachment<T>{	
-	public String getUrlForInputStream();
-	
-	public void setUrlForInputStream(String urlForInputStream);
-
+	public String getAttachmentId();
 	public InputStream getInputStream();
-	
-	public void closeInputStream();
+	public String getContentType();
+	public Boolean getIsFile();
 
 }

@@ -71,6 +71,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 	private static final String DESIGN_DOC_PREFIXE = "_design/";
 	private static final long MAX_INSTANCE_TIME = 60L;
 	private static final long MAX_CONNECTOR = 30L;
+	private static final int SOCKET_TIMEOUT = 60000;
 	private final DataSourceProvider dataSourceProvider;
 	private final CouchdbSerializer serializer;
 	private final CouchDbObjectMapperProvider objectMapperProvider;
@@ -83,7 +84,7 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 				@Override
 				public CouchDbInstance load(URL key) {
 					HttpClient httpClient = new StdHttpClient.Builder()
-							.url(key).build();
+							.url(key).socketTimeout(SOCKET_TIMEOUT).build();
 					return new StdCouchDbInstance(httpClient);
 				}
 
@@ -190,12 +191,11 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		if (values.size() == 1) {
 			Object value = values.iterator().next();
 
-			String key = value == null ? "" : value.toString();			
-			if (value instanceof Collection) {	
+			String key = value == null ? "" : value.toString();
+			if (value instanceof Collection) {
 				Collection<?> keyValues = Collection.class.cast(value);
 				if (keyValues.size() > 1) {
-					return vQuery.keys(keyValues)
-							.includeDocs(true);
+					return vQuery.keys(keyValues).includeDocs(true);
 				}
 				key = key.replaceAll("\\[", "").replaceAll("\\]", "");
 			}
@@ -203,15 +203,15 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 				Boolean booleanKey = new Boolean(key);
 				return vQuery.key(booleanKey);
 			}
-			
-			if (value instanceof Class){
+
+			if (value instanceof Class) {
 				key = ((Class) value).getCanonicalName();
 			}
 			return vQuery.key(key);
 		}
 		List<Object> keys = Lists.newArrayList();
-		for(Object value : values){
-			if(value instanceof Entity)
+		for (Object value : values) {
+			if (value instanceof Entity)
 				keys.add(value.toString());
 			else
 				keys.add(value);
@@ -368,27 +368,24 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 			InputStream inputStream = ((CouchDbAttachment) entity)
 					.getInputStream();
 			AttachmentInputStream a = new AttachmentInputStream(
-					((CouchDbAttachment) entity).getId(),
+					((CouchDbAttachment) entity).getAttachmentId(),
 					inputStream, ((CouchDbAttachment) entity).getContentType());
 			getConnector(entity.metadata()).createAttachment(
-					((CouchDbAttachment) entity).getParent().getId(),
-					((CouchDbAttachment) entity).getParent().getRev(), a);
-			updateParentRev(entity);
+					((CouchDbAttachment) entity).getId(),
+					((CouchDbAttachment) entity).getRev(), a);
 			try {
 				a.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			((CouchDbAttachment) entity).closeInputStream();
+			try {
+				inputStream.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
-	}
-
-	private void updateParentRev(Entity entity) {
-		String parentNewRev = getConnector(entity.metadata())
-				.getCurrentRevision(
-						((CouchDbAttachment) entity).getParent().getId());
-		((CouchDbAttachment) entity).getParent().setRev(parentNewRev);
 	}
 
 	private List<Entity> cleanMultipleEntries(List<Entity> entities) {
@@ -581,15 +578,16 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 			throw Throwables.propagate(e);
 		}
 	}
-	
+
 	public long getLastSeq(String dsKey) {
-			try {
-				return connectors.get(dataSourceProvider.provide(dsKey)).getDbInfo().getUpdateSeq();
-			} catch (ExecutionException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			return 0;
+		try {
+			return connectors.get(dataSourceProvider.provide(dsKey))
+					.getDbInfo().getUpdateSeq();
+		} catch (ExecutionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return 0;
 	}
 
 }
