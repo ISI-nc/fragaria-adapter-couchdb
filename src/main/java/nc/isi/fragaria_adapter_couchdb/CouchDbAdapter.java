@@ -333,7 +333,8 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		checkNotNull(entities);
 		List<Entity> filtered = cleanMultipleEntries(entities);
 		Multimap<CouchDbConnector, Object> docsByConnector = HashMultimap
-				.create();
+				.create();		
+		List<CouchDbAttachment> attachments = Lists.newArrayList();
 		for (Entity entity : filtered) {
 			LOGGER.info(String.format("prepare entity for posting : %s",
 					entity.toJSON()));
@@ -347,6 +348,10 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 			}
 			CouchDbConnector couchDbConnector = getConnector(entity.metadata());
 			docsByConnector.put(couchDbConnector, toPost);
+			if (entity instanceof CouchDbAttachment
+					&& entity.getState() == State.NEW){
+				attachments.add((CouchDbAttachment) entity);
+			}
 		}
 		for (CouchDbConnector connector : docsByConnector.keySet()) {
 			Collection<Object> toPost = docsByConnector.get(connector);
@@ -354,15 +359,15 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 					toPost.size(), connector.getDatabaseName()));
 			connector.executeAllOrNothing(toPost);
 		}
-		for (Entity entity : filtered) {
-			if (entity.getState() != State.DELETED) {
-				createNewAttachment(entity);
-				entity.setState(State.COMMITED);
+		for (CouchDbAttachment attachment : attachments) {
+			if (attachment.getState() != State.DELETED) {
+				createNewAttachment(attachment);
+				attachment.setState(State.COMMITED);
 			}
 		}
 	}
 
-	private void createNewAttachment(Entity entity) {
+	private void createNewAttachment(CouchDbAttachment entity) {
 		if (entity instanceof CouchDbAttachment
 				&& entity.getState() == State.NEW) {
 			InputStream inputStream = ((CouchDbAttachment) entity)
