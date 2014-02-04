@@ -10,5 +10,4 @@ public interface CouchDbAttachment<T extends AbstractEntity> extends EntityAttac
 	public InputStream getInputStream();
 	public String getContentType();
 	public Boolean getIsFile();
-
 }

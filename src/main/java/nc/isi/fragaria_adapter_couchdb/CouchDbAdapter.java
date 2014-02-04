@@ -358,7 +358,9 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 		for (Entity entity : filtered) {
 			if (entity.getState() != State.DELETED) {
 				if (entity instanceof CouchDbAttachment)
-					createNewAttachment((CouchDbAttachment) entity);
+					if (((CouchDbAttachment) entity).getIsFile() != null
+							&& ((CouchDbAttachment) entity).getIsFile())
+						createNewAttachment((CouchDbAttachment) entity);
 				entity.setState(State.COMMITED);
 			}
 		}
@@ -372,10 +374,9 @@ public class CouchDbAdapter extends AbstractAdapter implements Adapter {
 			AttachmentInputStream a = new AttachmentInputStream(
 					((CouchDbAttachment) entity).getAttachmentId(),
 					inputStream, ((CouchDbAttachment) entity).getContentType());
-
 			getConnector(entity.metadata()).createAttachment(
 					((CouchDbAttachment) entity).getId(),
-					((CouchDbAttachment) entity).getRev(), a);
+					((CouchDbAttachment) entity).getRev(), a);		
 			try {
 				a.close();
 			} catch (IOException e) {
